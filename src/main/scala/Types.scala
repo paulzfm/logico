@@ -43,7 +43,7 @@ object Types {
     override def substituteWith(sub: Sub): Not = Not(atom.substituteWith(sub))
   }
 
-  case class Conj(preds: List[Predicate]) extends Term {
+  case class Conj(preds: List[Predicate]) extends Predicate {
     override def substituteWith(sub: Sub): Conj = Conj(preds.map(_.substituteWith(sub)))
   }
 

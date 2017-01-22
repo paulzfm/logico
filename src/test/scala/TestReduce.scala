@@ -1,4 +1,4 @@
-import Types.{Word, _}
+import Types._
 import Query.reduce
 import org.scalatest.FunSuite
 import org.junit.runner.RunWith
@@ -37,17 +37,28 @@ class TestReduce extends FunSuite {
     val goal = Atom(Word("retires"), List(Variable("Z")))
     val rule = new Rule(Atom(Word("retires"), List(Variable("X"))),
       Atom(Word("age"), List(Variable("X"), Integer(65))))
-    assert(reduce(goal, rule) ==(Atom(Word("age"), List(Variable("Z"), Integer(65))), Map()))
+    assert(reduce(goal, rule) == (Atom(Word("age"), List(Variable("Z"), Integer(65))), Map()))
   }
 
   test("fail which-query") {
     val goal = Atom(Word("costs"), List(Word("butter"), Variable("X")))
     val rule = new Rule(Atom(Word("costs"), List(Word("fish"), Variable("Y"))),
       Atom(Word("sells"), List(Variable("Z"), Word("fish"), Variable("Y"))))
-    assert(reduce(goal, rule) ==(False, Map()))
+    assert(reduce(goal, rule) == (False, Map()))
   }
 
-  test("") {
-
+  test("conjunctive rule") {
+    val goal = Atom(Word("gives"), List(Variable("X"), Word("mary"), Variable("Z")))
+    val rule = new Rule(
+      Atom(Word("gives"), List(Word("santa"), Variable("Y1"), Variable("Y2"))),
+      Conj(List(
+        Atom(Word("asked-for"), List(Variable("Y1"), Variable("Y2"))),
+        Atom(Word("deserves"), List(Variable("Y1"), Variable("Y2")))
+      ))
+    )
+    assert(reduce(goal, rule) == (Conj(List(
+      Atom(Word("asked-for"), List(Word("mary"), Variable("Z"))),
+      Atom(Word("deserves"), List(Word("mary"), Variable("Z")))
+    )), Map(Variable("X") -> Word("santa"))))
   }
 }
