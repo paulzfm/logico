@@ -30,5 +30,5 @@
 
 ```
 <query> ::= load <database-name>.
-         |  <rule>
+         |  <predicate-list>
 ```
