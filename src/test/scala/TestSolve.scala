@@ -4,8 +4,12 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class TestReduce extends FunSuite {
-  val q = new Query
+class TestSolve extends FunSuite {
+  val db = Map(
+    
+  )
+
+  val q = new Query(db)
 
   test("no reduction: same") {
     val goal = Atom(Word("late"), List(Word("Tom")))

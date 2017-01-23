@@ -2,6 +2,7 @@
   * Created by paul on 22/01/2017.
   */
 object Types {
+
   // substitute the first term (Variable) as the second term
   // e.g. Variable("x") = Word("hello")
   type Sub = Map[Term, Term]
