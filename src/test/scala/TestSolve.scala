@@ -6,64 +6,97 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class TestSolve extends FunSuite {
   val db = Map(
-    
+    (Word("test"), 0) -> List(
+      new Rule(Atom(Word("test")))
+    ),
+    (Word("left-of"), 2) -> List(
+      new Rule(Atom(Word("left-of"), List(Word("jill"), Word("bob")))),
+      new Rule(Atom(Word("left-of"), List(Word("bob"), Word("tony")))),
+      new Rule(Atom(Word("left-of"), List(Word("tony"), Word("tracey")))),
+      new Rule(Atom(Word("left-of"), List(Word("tracey"), Word("ian")))),
+      new Rule(Atom(Word("left-of"), List(Word("ian"), Word("mary")))),
+      new Rule(Atom(Word("left-of"), List(Word("mary"), Word("sam"))))
+    ),
+    (Word("mutters"), 1) -> List(
+      new Rule(Atom(Word("mutters"), List(Word("jill")))),
+      new Rule(Atom(Word("mutters"), List(Word("mary"))))
+    ),
+    (Word("cheers"), 1) -> List(
+      new Rule(Atom(Word("cheers"), List(Word("bob")))),
+      new Rule(Atom(Word("cheers"), List(Word("tracey")))),
+      new Rule(Atom(Word("cheers"), List(Word("ian"))))
+    ),
+    (Word("dozes"), 1) -> List(
+      new Rule(Atom(Word("dozes"), List(Word("tony")))),
+      new Rule(Atom(Word("dozes"), List(Word("sam"))))
+    ),
+    (Word("beside"), 2) -> List(
+      new Rule(Atom(Word("beside"), List(Variable("X"), Variable("Y"))),
+        Atom(Word("left-of"), List(Variable("X"), Variable("Y")))),
+      new Rule(Atom(Word("beside"), List(Variable("X"), Variable("Y"))),
+        Atom(Word("left-of"), List(Variable("Y"), Variable("X"))))
+    ),
+    (Word("happy"), 1) -> List(
+      new Rule(Atom(Word("happy"), List(Variable("X"))),
+        Atom(Word("cheers"), List(Variable("X"))))
+    ),
+    (Word("disturbed-by"), 2) -> List(
+      new Rule(Atom(Word("disturbed-by"), List(Variable("X"), Variable("Y"))),
+        Conj(List(
+          Atom(Word("dozes"), List(Variable("X"))),
+          Atom(Word("beside"), List(Variable("X"), Variable("Y"))),
+          Atom(Word("cheers"), List(Variable("Y"))))
+        ))
+    )
   )
 
   val q = new Query(db)
 
-  test("no reduction: same") {
-    val goal = Atom(Word("late"), List(Word("Tom")))
-    val rule = new Rule(Atom(Word("late"), List(Word("Tom"))))
-    assert(q.reduce(goal, rule) == (True, Map()))
+  test("test") {
+    assert(q.solve(Atom(Word("test"))).contains(List(Map())))
   }
 
-  test("no reduction: different") {
-    val goal = Atom(Word("late"), List(Word("Tom")))
-    val rule = new Rule(Atom(Word("late"), List(Word("Bill"))))
-    assert(q.reduce(goal, rule) == (False, Map()))
+  test("bob left-of tony") {
+    assert(q.solve(Atom(Word("left-of"), List(Word("bob"), Word("tony")))).contains(List(Map())))
   }
 
-  test("q.reduce to if") {
-    val goal = Atom(Word("late"), List(Word("Tom")))
-    val cond = Atom(Word("faulty"), List(Word("car")))
-    val rule = new Rule(Atom(Word("late"), List(Word("Tom"))), cond)
-    assert(q.reduce(goal, rule) == (cond, Map()))
+  test("tony left-of bob") {
+    assert(q.solve(Atom(Word("left-of"), List(Word("tony"), Word("bob")))).isEmpty)
   }
 
-  test("replace one variable") {
-    val goal = Atom(Word("has-features"), List(Word("sparrow")))
-    val rule = new Rule(Atom(Word("has-features"), List(Variable("X"))),
-      Atom(Word("type-of"), List(Variable("X"), Word("bird"))))
-    assert(q.reduce(goal, rule) == (Atom(Word("type-of"), List(Word("sparrow"), Word("bird"))),
-      Map()))
+  test("X happy") {
+    assert(q.solve(Atom(Word("happy"), List(Variable("X")))).contains(List(
+      Map(Variable("X") -> Word("bob")),
+      Map(Variable("X") -> Word("tracey")),
+      Map(Variable("X") -> Word("ian"))
+    )))
   }
 
-  test("q.reduce which-query") {
-    val goal = Atom(Word("retires"), List(Variable("Z")))
-    val rule = new Rule(Atom(Word("retires"), List(Variable("X"))),
-      Atom(Word("age"), List(Variable("X"), Integer(65))))
-    assert(q.reduce(goal, rule) == (Atom(Word("age"), List(Variable("Z"), Integer(65))), Map()))
+  test("X beside bob") {
+    assert(q.solve(Atom(Word("beside"), List(Variable("X"), Variable("bob")))).contains(List(
+      Map(Variable("X") -> Word("jill")),
+      Map(Variable("X") -> Word("tony"))
+    )))
   }
 
-  test("fail which-query") {
-    val goal = Atom(Word("costs"), List(Word("butter"), Variable("X")))
-    val rule = new Rule(Atom(Word("costs"), List(Word("fish"), Variable("Y"))),
-      Atom(Word("sells"), List(Variable("Z"), Word("fish"), Variable("Y"))))
-    assert(q.reduce(goal, rule) == (False, Map()))
+  test("NOT jill mutters") {
+    assert(q.solve(Not(Atom(Word("mutters"), List(Word("jill"))))).isEmpty)
   }
 
-  test("conjunctive rule") {
-    val goal = Atom(Word("gives"), List(Variable("X"), Word("mary"), Variable("Z")))
-    val rule = new Rule(
-      Atom(Word("gives"), List(Word("santa"), Variable("Y1"), Variable("Y2"))),
-      Conj(List(
-        Atom(Word("asked-for"), List(Variable("Y1"), Variable("Y2"))),
-        Atom(Word("deserves"), List(Variable("Y1"), Variable("Y2")))
-      ))
-    )
-    assert(q.reduce(goal, rule) == (Conj(List(
-      Atom(Word("asked-for"), List(Word("mary"), Variable("Z"))),
-      Atom(Word("deserves"), List(Word("mary"), Variable("Z")))
-    )), Map(Variable("X") -> Word("santa"))))
+  test("X mutters AND X left-of Y") {
+    assert(q.solve(Conj(List(
+      Atom(Word("mutters"), List(Variable("X"))),
+      Atom(Word("left-of"), List(Variable("X"), Variable("Y")))
+    ))).contains(List(
+      Map(Variable("X") -> Word("jill"), Variable("Y") -> Word("bob")),
+      Map(Variable("X") -> Word("mary"), Variable("Y") -> Word("sam"))
+    )))
+  }
+
+  test("tony disturbed-by X") {
+    assert(q.solve(Atom(Word("disturbed-by"), List(Word("tony"), Variable("X")))).contains(List(
+      Map(Variable("X") -> Word("tracey")),
+      Map(Variable("X") -> Word("bob"))
+    )))
   }
 }
