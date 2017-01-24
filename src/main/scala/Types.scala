@@ -38,11 +38,13 @@ object Types {
     def substituteWith(sub: Sub): Predicate = this
   }
 
-  case object True extends Predicate {
+  abstract class Boolean extends Predicate
+
+  case object True extends Boolean {
     override def toString: String = "."
   }
 
-  case object False extends Predicate {
+  case object False extends Boolean {
     override def toString: String = "?"
   }
 
@@ -67,7 +69,7 @@ object Types {
     override def toString: String = preds.mkString(" & ")
   }
 
-  case class Rule(rear: Atom, front: Predicate = True) {
+  case class Rule(rear: Atom, front: Predicate = True, id: Int = 0) {
     override def toString: String = front match {
       case True => s"$rear"
       case _ => s"$rear :- $front"
