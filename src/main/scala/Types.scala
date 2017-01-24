@@ -11,18 +11,26 @@ object Types {
     def substituteWith(sub: Sub): Term = this
   }
 
-  case class Word(const: String) extends Term
+  case class Word(const: String) extends Term {
+    override def toString: String = const
+  }
 
   case class Variable(name: String) extends Term {
     override def substituteWith(sub: Sub): Term = sub.get(this) match {
       case Some(t) => t
       case None => this
     }
+
+    override def toString: String = name
   }
 
-  case object Any extends Term
+  case object Any extends Term {
+    override def toString: String = "_"
+  }
 
-  case class Integer(value: Int) extends Term
+  case class Integer(value: Int) extends Term {
+    override def toString: String = s"$value"
+  }
 
   case class TermList(terms: List[Term]) extends Term
 
@@ -30,29 +38,45 @@ object Types {
     def substituteWith(sub: Sub): Predicate = this
   }
 
-  case object True extends Predicate
+  case object True extends Predicate {
+    override def toString: String = "."
+  }
 
-  case object False extends Predicate
+  case object False extends Predicate {
+    override def toString: String = "?"
+  }
 
-  case class Atom(verb: Word, args: List[Term]) extends Predicate {
-    def this(verb: Word) = this(verb, Nil)
-
+  case class Atom(verb: Word, args: List[Term] = Nil) extends Predicate {
     override def substituteWith(sub: Sub): Atom = Atom(verb, args.map(_.substituteWith(sub)))
+
+    override def toString: String = s"$verb${
+      if (args.isEmpty) ""
+      else args.mkString(", ")
+    }"
   }
 
   case class Not(atom: Atom) extends Predicate {
     override def substituteWith(sub: Sub): Not = Not(atom.substituteWith(sub))
+
+    override def toString: String = s"~$atom"
   }
 
   case class Conj(preds: List[Predicate]) extends Predicate {
     override def substituteWith(sub: Sub): Conj = Conj(preds.map(_.substituteWith(sub)))
+
+    override def toString: String = preds.mkString(" & ")
   }
 
-  class Rule(val rear: Atom, val front: Predicate) {
-    def this(rear: Atom) = this(rear, True)
+  case class Rule(rear: Atom, front: Predicate = True) {
+    override def toString: String = front match {
+      case True => s"$rear"
+      case _ => s"$rear :- $front"
+    }
   }
 
-  type Sig = (Word, Int)
+  case class Sig(name: Word, dim: Int) {
+    override def toString: String = s"$name/$dim"
+  }
 
   type Database = Map[Sig, List[Rule]]
 }
