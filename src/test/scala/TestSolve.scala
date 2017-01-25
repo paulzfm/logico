@@ -69,7 +69,7 @@ class TestSolve extends FunSuite {
   }
 
   test("X beside bob") {
-    val (results, trace) = q.solve(Atom(Word("beside"), List(Variable("X"), Variable("bob"))))
+    val (results, trace) = q.solve(Atom(Word("beside"), List(Variable("X"), Word("bob"))))
     println(trace)
     assert(results == List(
       Map(Variable("X") -> Word("jill")),

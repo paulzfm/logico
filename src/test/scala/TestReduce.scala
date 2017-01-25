@@ -19,14 +19,14 @@ class TestReduce extends FunSuite {
     assert(q.reduce(goal, rule) == (False, Map()))
   }
 
-  test("q.reduce to if") {
+  test("reduce to if") {
     val goal = Atom(Word("late"), List(Word("Tom")))
     val cond = Atom(Word("faulty"), List(Word("car")))
     val rule = Rule(Atom(Word("late"), List(Word("Tom"))), cond)
     assert(q.reduce(goal, rule) == (cond, Map()))
   }
 
-  test("replace one variable") {
+  test("replace one variable in rule") {
     val goal = Atom(Word("has-features"), List(Word("sparrow")))
     val rule = Rule(Atom(Word("has-features"), List(Variable("X"))),
       Atom(Word("type-of"), List(Variable("X"), Word("bird"))))
@@ -34,7 +34,13 @@ class TestReduce extends FunSuite {
       Map()))
   }
 
-  test("q.reduce which-query") {
+  test("replace one variable in goal") {
+    val goal = Atom(Word("left-of"), List(Variable("X"), Word("bob")))
+    val rule = Rule(Atom(Word("left-of"), List(Word("jill"), Word("bob"))))
+    assert(q.reduce(goal, rule) == (True, Map(Variable("X") -> Word("jill"))))
+  }
+
+  test("reduce which-query") {
     val goal = Atom(Word("retires"), List(Variable("Z")))
     val rule = Rule(Atom(Word("retires"), List(Variable("X"))),
       Atom(Word("age"), List(Variable("X"), Integer(65))))
