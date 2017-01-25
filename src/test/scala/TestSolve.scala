@@ -1,4 +1,5 @@
 import Types._
+import com.sun.deploy.security.ruleset.DeploymentRuleSet
 import org.scalatest.FunSuite
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -32,7 +33,8 @@ class TestSolve extends FunSuite {
         Atom(Word("beside"), List(Variable("X"), Variable("Y"))),
         Atom(Word("cheers"), List(Variable("Y"))))
       )
-    )
+    ),
+    Rule(Atom(Word("is-a-thing"), List(Variable("X"))))
   ))
 
   val q = new Query(db)
@@ -102,5 +104,23 @@ class TestSolve extends FunSuite {
       Map(Variable("X") -> Word("tracey")),
       Map(Variable("X") -> Word("bob"))
     ))
+  }
+
+  test("cat is-a-thing") {
+    val (results, trace) = q.solve(Atom(Word("is-a-thing"), List(Word("cat"))))
+    println(trace)
+    assert(results == List(Map()))
+  }
+
+  test("123 is-a-thing") {
+    val (results, trace) = q.solve(Atom(Word("is-a-thing"), List(Integer(123))))
+    println(trace)
+    assert(results == List(Map()))
+  }
+
+  test("X is-a-thing") {
+    val (results, trace) = q.solve(Atom(Word("is-a-thing"), List(Variable("X"))))
+    println(trace)
+    assert(results == List(Map()))
   }
 }
