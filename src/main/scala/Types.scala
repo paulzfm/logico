@@ -1,6 +1,7 @@
 /**
   * Created by paul on 22/01/2017.
   */
+
 object Types {
 
   // substitute the first term (Variable) as the second term
@@ -53,7 +54,7 @@ object Types {
 
     override def toString: String = s"$verb${
       if (args.isEmpty) ""
-      else args.mkString(", ")
+      else s"(${args.mkString(", ")})"
     }"
   }
 
@@ -69,16 +70,31 @@ object Types {
     override def toString: String = preds.mkString(" & ")
   }
 
-  case class Rule(rear: Atom, front: Predicate = True, id: Int = 0) {
+  case class Rule(rear: Atom, front: Predicate = True) {
     override def toString: String = front match {
-      case True => s"$rear"
-      case _ => s"$rear :- $front"
+      case True => s"$rear."
+      case _ => s"$rear :- $front."
     }
+
+    lazy val sig: Sig = Sig(rear.verb, rear.args.length)
   }
 
   case class Sig(name: Word, dim: Int) {
     override def toString: String = s"$name/$dim"
   }
 
-  type Database = Map[Sig, List[Rule]]
+  class Database(val rules: List[Rule] = Nil) {
+    private val rulesWithId: List[(Int, Rule)] = (1 to rules.length).toList.zip(rules)
+
+    private val hashMap: Map[Sig, List[(Int, Rule)]] = rulesWithId.groupBy(_._2.sig)
+
+    def get(sig: Sig): Option[List[(Int, Rule)]] = hashMap.get(sig)
+
+    def append(newRules: List[Rule]): Database = new Database(rules ++ newRules)
+
+    override def toString: String = rulesWithId map {
+      case (id, rule) => s"($id) $rule\n"
+    } mkString
+  }
+
 }

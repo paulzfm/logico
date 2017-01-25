@@ -4,7 +4,7 @@
 
 import Types.{Sub, _}
 
-class Query(val db: Database = Map()) {
+class Query(val db: Database = new Database) {
 
   /**
     * Tell whether two terms can be made equal (matched).
@@ -18,9 +18,10 @@ class Query(val db: Database = Map()) {
   def matchTerms(goal: Term, origin: Term): Option[(Sub, Sub)] = (goal, origin) match {
     case (Word(c1), Word(c2)) if c1 == c2 => Some((Map(), Map()))
     case (Integer(n1), Integer(n2)) if n1 == n2 => Some((Map(), Map()))
-    case (Variable(v), Word(_)) => Some((Map(goal -> origin), Map()))
-    case (Variable(v), Integer(_)) => Some((Map(goal -> origin), Map()))
-    case (_, Variable(v)) => Some((Map(), Map(origin -> goal)))
+    case (Variable(_), Word(_)) => Some((Map(goal -> origin), Map()))
+    case (Variable(_), Integer(_)) => Some((Map(goal -> origin), Map()))
+    case (_, Variable(_)) => Some((Map(), Map(origin -> goal)))
+
     case (Any, _) => Some((Map(), Map()))
     case (_, Any) => Some((Map(), Map()))
     case _ => None
@@ -58,6 +59,10 @@ class Query(val db: Database = Map()) {
     def appendGoals(trees: List[TTree]): (TTree, List[TTree])
 
     def toLines(indent: Int = 0): List[(Int, String)]
+
+    override def toString: String = toLines().map {
+      case (indent, str) => s"${"  " * indent}<-- $str\n"
+    } mkString
   }
 
   // Leaf node: cannot be reduced any more, but a new goal can be appended as its child.
@@ -105,11 +110,15 @@ class Query(val db: Database = Map()) {
     override def toLines(indent: Int) = (indent, s"$goal") :: children.flatMap {
       case (id, sub, tree) => tree.toLines(indent + 1) match {
         case (i, s) :: ls => (i, s"$s ($id) ${
-          if (sub.nonEmpty) s"[$sub]"
+          if (sub.nonEmpty) s"[${showSub(sub)}]"
           else ""
         }") :: ls
       }
     }
+
+    private def showSub(sub: Sub): String = sub map {
+      case (t1, t2) => s"$t1 = $t2"
+    } mkString ", "
   }
 
   // Not node: a Not goal which we first solve the negation goal and then reverse the solution.
@@ -136,13 +145,13 @@ class Query(val db: Database = Map()) {
     * @param acc   solutions found so far
     * @return same as `solve`
     */
-  def solveAtomWithRules(goal: Atom, rules: List[Rule], acc: List[Sub],
+  def solveAtomWithRules(goal: Atom, rules: List[(Int, Rule)], acc: List[Sub],
                          cs: List[(Int, Sub, TTree)]): (List[Sub], TTree) = rules match {
     case Nil => (acc, RNode(goal, cs))
-    case r :: rs =>
+    case (id, r) :: rs =>
       val (g, s) = reduce(goal, r)
       val (re, t) = solve(g)
-      solveAtomWithRules(goal, rs, acc ++ re, cs :+ (r.id, s, t))
+      solveAtomWithRules(goal, rs, acc ++ re.map(s ++ _), cs :+ (id, s, t))
   }
 
   /**
