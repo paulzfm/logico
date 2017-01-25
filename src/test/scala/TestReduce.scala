@@ -9,26 +9,26 @@ class TestReduce extends FunSuite {
 
   test("no reduction: same") {
     val goal = Atom(Word("late"), List(Word("Tom")))
-    val rule = Rule(Atom(Word("late"), List(Word("Tom"))))
+    val rule = new Rule(Atom(Word("late"), List(Word("Tom"))))
     assert(q.reduce(goal, rule) == (True, Map()))
   }
 
   test("no reduction: different") {
     val goal = Atom(Word("late"), List(Word("Tom")))
-    val rule = Rule(Atom(Word("late"), List(Word("Bill"))))
+    val rule = new Rule(Atom(Word("late"), List(Word("Bill"))))
     assert(q.reduce(goal, rule) == (False, Map()))
   }
 
   test("reduce to if") {
     val goal = Atom(Word("late"), List(Word("Tom")))
     val cond = Atom(Word("faulty"), List(Word("car")))
-    val rule = Rule(Atom(Word("late"), List(Word("Tom"))), cond)
+    val rule = new Rule(Atom(Word("late"), List(Word("Tom"))), cond)
     assert(q.reduce(goal, rule) == (cond, Map()))
   }
 
   test("replace one variable in rule") {
     val goal = Atom(Word("has-features"), List(Word("sparrow")))
-    val rule = Rule(Atom(Word("has-features"), List(Variable("X"))),
+    val rule = new Rule(Atom(Word("has-features"), List(Variable("X"))),
       Atom(Word("type-of"), List(Variable("X"), Word("bird"))))
     assert(q.reduce(goal, rule) == (Atom(Word("type-of"), List(Word("sparrow"), Word("bird"))),
       Map()))
@@ -36,27 +36,27 @@ class TestReduce extends FunSuite {
 
   test("replace one variable in goal") {
     val goal = Atom(Word("left-of"), List(Variable("X"), Word("bob")))
-    val rule = Rule(Atom(Word("left-of"), List(Word("jill"), Word("bob"))))
+    val rule = new Rule(Atom(Word("left-of"), List(Word("jill"), Word("bob"))))
     assert(q.reduce(goal, rule) == (True, Map(Variable("X") -> Word("jill"))))
   }
 
   test("reduce which-query") {
     val goal = Atom(Word("retires"), List(Variable("Z")))
-    val rule = Rule(Atom(Word("retires"), List(Variable("X"))),
+    val rule = new Rule(Atom(Word("retires"), List(Variable("X"))),
       Atom(Word("age"), List(Variable("X"), Integer(65))))
     assert(q.reduce(goal, rule) == (Atom(Word("age"), List(Variable("Z"), Integer(65))), Map()))
   }
 
   test("fail which-query") {
     val goal = Atom(Word("costs"), List(Word("butter"), Variable("X")))
-    val rule = Rule(Atom(Word("costs"), List(Word("fish"), Variable("Y"))),
+    val rule = new Rule(Atom(Word("costs"), List(Word("fish"), Variable("Y"))),
       Atom(Word("sells"), List(Variable("Z"), Word("fish"), Variable("Y"))))
     assert(q.reduce(goal, rule) == (False, Map()))
   }
 
   test("conjunctive rule") {
     val goal = Atom(Word("gives"), List(Variable("X"), Word("mary"), Variable("Z")))
-    val rule = Rule(
+    val rule = new Rule(
       Atom(Word("gives"), List(Word("santa"), Variable("Y1"), Variable("Y2"))),
       Conj(List(
         Atom(Word("asked-for"), List(Variable("Y1"), Variable("Y2"))),

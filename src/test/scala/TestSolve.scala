@@ -1,5 +1,4 @@
 import Types._
-import com.sun.deploy.security.ruleset.DeploymentRuleSet
 import org.scalatest.FunSuite
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -7,34 +6,34 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class TestSolve extends FunSuite {
   val db = new Database(List(
-    Rule(Atom(Word("test"))),
-    Rule(Atom(Word("left-of"), List(Word("jill"), Word("bob")))),
-    Rule(Atom(Word("left-of"), List(Word("bob"), Word("tony")))),
-    Rule(Atom(Word("left-of"), List(Word("tony"), Word("tracey")))),
-    Rule(Atom(Word("left-of"), List(Word("tracey"), Word("ian")))),
-    Rule(Atom(Word("left-of"), List(Word("ian"), Word("mary")))),
-    Rule(Atom(Word("left-of"), List(Word("mary"), Word("sam")))),
-    Rule(Atom(Word("mutters"), List(Word("jill")))),
-    Rule(Atom(Word("mutters"), List(Word("mary")))),
-    Rule(Atom(Word("cheers"), List(Word("bob")))),
-    Rule(Atom(Word("cheers"), List(Word("tracey")))),
-    Rule(Atom(Word("cheers"), List(Word("ian")))),
-    Rule(Atom(Word("dozes"), List(Word("tony")))),
-    Rule(Atom(Word("dozes"), List(Word("sam")))),
-    Rule(Atom(Word("beside"), List(Variable("X"), Variable("Y"))),
+    new Rule(Atom(Word("test"))),
+    new Rule(Atom(Word("left-of"), List(Word("jill"), Word("bob")))),
+    new Rule(Atom(Word("left-of"), List(Word("bob"), Word("tony")))),
+    new Rule(Atom(Word("left-of"), List(Word("tony"), Word("tracey")))),
+    new Rule(Atom(Word("left-of"), List(Word("tracey"), Word("ian")))),
+    new Rule(Atom(Word("left-of"), List(Word("ian"), Word("mary")))),
+    new Rule(Atom(Word("left-of"), List(Word("mary"), Word("sam")))),
+    new Rule(Atom(Word("mutters"), List(Word("jill")))),
+    new Rule(Atom(Word("mutters"), List(Word("mary")))),
+    new Rule(Atom(Word("cheers"), List(Word("bob")))),
+    new Rule(Atom(Word("cheers"), List(Word("tracey")))),
+    new Rule(Atom(Word("cheers"), List(Word("ian")))),
+    new Rule(Atom(Word("dozes"), List(Word("tony")))),
+    new Rule(Atom(Word("dozes"), List(Word("sam")))),
+    new Rule(Atom(Word("beside"), List(Variable("X"), Variable("Y"))),
       Atom(Word("left-of"), List(Variable("X"), Variable("Y")))),
-    Rule(Atom(Word("beside"), List(Variable("X"), Variable("Y"))),
+    new Rule(Atom(Word("beside"), List(Variable("X"), Variable("Y"))),
       Atom(Word("left-of"), List(Variable("Y"), Variable("X")))),
-    Rule(Atom(Word("happy"), List(Variable("X"))),
+    new Rule(Atom(Word("happy"), List(Variable("X"))),
       Atom(Word("cheers"), List(Variable("X")))),
-    Rule(Atom(Word("disturbed-by"), List(Variable("X"), Variable("Y"))),
+    new Rule(Atom(Word("disturbed-by"), List(Variable("X"), Variable("Y"))),
       Conj(List(
         Atom(Word("dozes"), List(Variable("X"))),
         Atom(Word("beside"), List(Variable("X"), Variable("Y"))),
         Atom(Word("cheers"), List(Variable("Y"))))
       )
     ),
-    Rule(Atom(Word("is-a-thing"), List(Variable("X"))))
+    new Rule(Atom(Word("is-a-thing"), List(Variable("X"))))
   ))
 
   val q = new Query(db)

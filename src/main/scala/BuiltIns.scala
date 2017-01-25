@@ -1,0 +1,28 @@
+/**
+  * Created by paul on 26/01/2017.
+  */
+
+import Types._
+import TraceTree._
+
+object BuiltIns {
+  /**
+    * Built-in functions type.
+    */
+  type Func = List[Term] => (List[Sub], TTree)
+
+  val bi: Map[Sig, Func] = Map(
+    Sig(Word("sum"), 3) -> {
+      case Integer(n1) :: Integer(n2) :: Integer(n3) :: Nil =>
+        if (n1 + n2 == n3) (List(Map()), accepted)
+        else (Nil, rejected)
+      case Variable(v) :: Integer(n2) :: Integer(n3) :: Nil =>
+        (List(Map(Variable(v) -> Integer(n3 - n2))), accepted)
+      case Integer(n1) :: Variable(v) :: Integer(n3) :: Nil =>
+        (List(Map(Variable(v) -> Integer(n3 - n1))), accepted)
+      case Integer(n1) :: Integer(n2) :: Variable(v) :: Nil =>
+        (List(Map(Variable(v) -> Integer(n1 + n2))), accepted)
+      case _ => throw new Exception("insufficient arguments")
+    }
+  )
+}
