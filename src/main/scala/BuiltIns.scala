@@ -23,6 +23,33 @@ object BuiltIns {
       case Integer(n1) :: Integer(n2) :: Variable(v) :: Nil =>
         (List(Map(Variable(v) -> Integer(n1 + n2))), accepted)
       case _ => throw new Exception("insufficient arguments")
+    },
+
+    Sig(Word("times"), 3) -> {
+      case Integer(n1) :: Integer(n2) :: Integer(n3) :: Nil =>
+        if (n1 * n2 == n3) (List(Map()), accepted)
+        else (Nil, rejected)
+      case Variable(v) :: Integer(n2) :: Integer(n3) :: Nil =>
+        (List(Map(Variable(v) -> Integer(n3 / n2))), accepted)
+      case Integer(n1) :: Variable(v) :: Integer(n3) :: Nil =>
+        (List(Map(Variable(v) -> Integer(n3 / n1))), accepted)
+      case Integer(n1) :: Integer(n2) :: Variable(v) :: Nil =>
+        (List(Map(Variable(v) -> Integer(n1 * n2))), accepted)
+      case _ => throw new Exception("insufficient arguments")
+    },
+
+    Sig(Word("less"), 2) -> {
+      case Integer(n1) :: Integer(n2) :: Nil =>
+        if (n1 < n2) (List(Map()), accepted)
+        else (Nil, rejected)
+      case _ => throw new Exception("insufficient arguments")
+    },
+
+    Sig(Word("eq"), 2) -> {
+      case t1 :: t2 :: Nil =>
+        if (t1 == t2) (List(Map()), accepted)
+        else (Nil, rejected)
+      case _ => throw new Exception("insufficient arguments")
     }
   )
 }
