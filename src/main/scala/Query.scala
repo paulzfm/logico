@@ -11,20 +11,64 @@ class Query(val db: Database = new Database) {
     *
     * @param goal   term inside the goal.
     * @param origin term inside the rule.
-    * @return - `Some(s1, s2)` if matched. `s1` is the substitutions for goal variables,
-    *         `s2` is the substitutions for rule variables.
+    * @return - `Some(s)` if matched. `s` is the substitutions for both goal and rule variables.
+    *         NOTE all goal variables start with *UPPER CASE* and rule variables start with *lower
+    *         case*.
     *         - `None` if not matched.
     */
-  def matchTerms(goal: Term, origin: Term): Option[(Sub, Sub)] = (goal, origin) match {
-    case (Word(c1), Word(c2)) if c1 == c2 => Some((Map(), Map()))
-    case (Integer(n1), Integer(n2)) if n1 == n2 => Some((Map(), Map()))
-    case (Variable(_), Word(_)) => Some((Map(goal -> origin), Map()))
-    case (Variable(_), Integer(_)) => Some((Map(goal -> origin), Map()))
-    case (_, Variable(_)) => Some((Map(), Map(origin -> goal)))
-
-    case (Any, _) => Some((Map(), Map()))
-    case (_, Any) => Some((Map(), Map()))
+  def matchTerms(goal: Term, origin: Term): Option[Sub] = (goal, origin) match {
+    case (Any, _) => Some(Map())
+    case (_, Any) => Some(Map())
+    case (Variable(v1), Variable(v2)) if v1 == v2 => Some(Map())
+    case (_, Variable(_)) => Some(Map(origin -> goal))
+    case (Variable(_), _) => Some(Map(goal -> origin))
+    case (Word(c1), Word(c2)) if c1 == c2 => Some(Map())
+    case (Integer(n1), Integer(n2)) if n1 == n2 => Some(Map())
+    case (CList(ts1), CList(ts2)) if ts1.length == ts2.length =>
+      matchTermLists(ts1, ts2, Map())
+    case (CList(ts1), PList(ts2, v)) if ts1.length >= ts2.length =>
+      matchTermLists(CList(ts1).split(ts2.length), ts2 :+ v, Map())
+    case (PList(ts1, v), CList(ts2)) if ts1.length <= ts2.length =>
+      matchTermLists(ts1 :+ v, CList(ts2).split(ts1.length), Map())
+    case (PList(ts1, v1), PList(ts2, v2)) =>
+      if (ts1.length >= ts2.length)
+        matchTermLists(PList(ts1, v1).split(ts2.length), ts2 :+ v2, Map())
+      else matchTermLists(ts1 :+ v1, PList(ts2, v2).split(ts1.length), Map())
     case _ => None
+  }
+
+  /**
+    * Tell whether two term lists can be made equal (matched).
+    *
+    * @param goalTerms terms inside goal.
+    * @param ruleTerms terms inside rule.
+    * @param sub       substitutions for goal and rule variables so far.
+    * @return the same as `matchTerms`.
+    */
+  def matchTermLists(goalTerms: List[Term], ruleTerms: List[Term], sub: Sub): Option[Sub] =
+    (goalTerms, ruleTerms) match {
+      case (Nil, _) => Some(sub)
+      case (_, Nil) => Some(sub)
+      case (t1 :: ts1, t2 :: ts2) => matchTerms(t1, t2) match {
+        case None => None // when any element fails, the list term fails
+        case Some(s) =>
+          val newSub = simplify(sub, s.toList)
+          matchTermLists(ts1.map(_.substituteWith(newSub)), ts2.map(_.substituteWith(newSub)),
+            newSub)
+      }
+    }
+
+  def simplify(sub: Sub, subs: List[(Term, Term)]): Sub = subs match {
+    case Nil => sub
+    case (Variable(v1), Variable(v2)) :: ss =>
+      simplify(sub.updated(Variable(v1), Variable(v2)), ss)
+    case (Variable(v), t) :: ss =>
+      val newSub = sub.map {
+        case (v1, Variable(v2)) if v2 == v => (v1, t)
+        case other => other
+      }
+      simplify(newSub.updated(Variable(v), t), ss)
+    case (t1, t2) :: _ => throw new Exception(s"illegal substitution: $t1 = $t2")
   }
 
   /**
@@ -38,24 +82,20 @@ class Query(val db: Database = new Database) {
     *         cannot continue due to the contradiction.
     *         - `sub` is the substitutions introduced when applying.
     */
-  def reduce(goal: Atom, rule: Rule): (Predicate, Sub) = {
-    def loop(goalTerms: List[Term], ruleTerms: List[Term],
-             goalSub: Sub, ruleSub: Sub): Option[(Sub, Sub)] =
-      (goalTerms, ruleTerms) match {
-        case (Nil, Nil) => Some((goalSub, ruleSub))
-        case (t1 :: ts1, t2 :: ts2) => matchTerms(t1, t2) match {
-          case None => None // when any term fails, the reduction fails
-          case Some((s1, s2)) => loop(ts1.map(_.substituteWith(s1)), ts2.map(_.substituteWith(s2)),
-            goalSub ++ s1, ruleSub ++ s2)
-        }
-        case _ => None
-      }
-
-    loop(goal.args, rule.rear.args, Map(), Map()) match {
+  def reduce(goal: Atom, rule: Rule): (Predicate, Sub) =
+    matchTermLists(goal.args, rule.rear.args, Map()) match {
       case None => (False, Map())
-      case Some((s1, s2)) => (rule.front.substituteWith(s2), s1)
+      case Some(s) =>
+        val s1 = s.filterKeys {
+          case Variable(v) if v.head.isUpper => true
+          case _ => false
+        }
+        val s2 = s.filterKeys {
+          case Variable(v) if v.head.isLower => true
+          case _ => false
+        }
+        (rule.front.substituteWith(s2), s1)
     }
-  }
 
   /**
     * Trace tree: to record the search traces.
@@ -73,7 +113,7 @@ class Query(val db: Database = new Database) {
   /**
     * Leaf node: cannot be reduced any more, but a new goal can be appended to it as its child.
     */
-  case class Leaf(goal: Boolean, child: Option[TTree] = None) extends TTree {
+  case class Leaf(goal: Bool, child: Option[TTree] = None) extends TTree {
     override def appendGoals(trees: List[TTree]): (TTree, List[TTree]) = goal match {
       case True => (Leaf(True, Some(trees.head)), trees.tail)
       case False => (this, trees)
@@ -141,7 +181,7 @@ class Query(val db: Database = new Database) {
     * @param child    the negation of `goal`.
     * @param accepted whether `goal` is reached or not finally.
     */
-  case class NNode(goal: Not, child: TTree, accepted: Boolean) extends TTree {
+  case class NNode(goal: Not, child: TTree, accepted: Bool) extends TTree {
     override def appendGoals(trees: List[TTree]): (TTree, List[TTree]) = child.appendGoals(trees)
 
     override def toLines(indent: Int): List[(Int, String)] = ((indent, s"$goal") ::

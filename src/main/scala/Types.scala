@@ -4,12 +4,15 @@
 
 object Types {
 
-  // substitute the first term (Variable) as the second term
-  // e.g. Variable("x") = Word("hello")
+  /**
+    * Substitutions of form like `Variable(X) -> Int(1)`.
+    */
   type Sub = Map[Term, Term]
 
   abstract class Term {
     def substituteWith(sub: Sub): Term = this
+
+    def variableToLowerCase: Term = this
   }
 
   case class Word(const: String) extends Term {
@@ -22,6 +25,8 @@ object Types {
       case None => this
     }
 
+    override def variableToLowerCase: Term = Variable(name.toLowerCase)
+
     override def toString: String = name
   }
 
@@ -33,24 +38,73 @@ object Types {
     override def toString: String = s"$value"
   }
 
-  case class TermList(terms: List[Term]) extends Term
+  /**
+    * Complete list (we know the length).
+    * For example, [X, Y, cat, 123].
+    * Especially, `CList(Nil)` is the empty list.
+    *
+    * @param terms all terms of list.
+    */
+  case class CList(terms: List[Term] = Nil) extends Term {
+    def split(headLength: Int): List[Term] = {
+      val (head, tail) = terms.splitAt(headLength)
+      head :+ CList(tail)
+    }
+
+    override def substituteWith(sub: Sub): Term = CList(terms.map(_.substituteWith(sub)))
+
+    override def variableToLowerCase: Term = CList(terms.map(_.variableToLowerCase))
+
+    override def toString: String = s"[${terms.mkString(", ")}]"
+  }
+
+  /**
+    * Partial list (we do not know the length).
+    * The whole list is composed of `head` and `tail`.
+    * For example, X : Y : Z, where [X, Y] is `head` and `Z` denotes `tail` list.
+    *
+    * @param head first part of the list.
+    * @param tail denotes the second (remaining) part.
+    */
+  case class PList(head: List[Term], tail: Term) extends Term {
+    def split(headLength: Int): List[Term] = {
+      val (head1, tail1) = head.splitAt(headLength)
+      head1 :+ PList(tail1, tail)
+    }
+
+    override def substituteWith(sub: Sub): Term = sub.get(tail) match {
+      case None => PList(head.map(_.substituteWith(sub)), tail)
+      case Some(CList(ts)) => CList(head.map(_.substituteWith(sub)) ++ ts)
+      case Some(PList(ts, v)) => PList(head.map(_.substituteWith(sub)) ++ ts, v)
+      case Some(t) => CList(head.map(_.substituteWith(sub)) :+ t)
+    }
+
+    override def variableToLowerCase: Term = PList(head.map(_.variableToLowerCase),
+      tail.variableToLowerCase)
+
+    override def toString: String = s"${head.mkString(":")}:$tail"
+  }
 
   abstract class Predicate {
     def substituteWith(sub: Sub): Predicate = this
+
+    def variableToLowerCase: Predicate = this
   }
 
-  abstract class Boolean extends Predicate
+  abstract class Bool extends Predicate
 
-  case object True extends Boolean {
+  case object True extends Bool {
     override def toString: String = "."
   }
 
-  case object False extends Boolean {
+  case object False extends Bool {
     override def toString: String = "?"
   }
 
   case class Atom(verb: Word, args: List[Term] = Nil) extends Predicate {
     override def substituteWith(sub: Sub): Atom = Atom(verb, args.map(_.substituteWith(sub)))
+
+    override def variableToLowerCase: Atom = Atom(verb, args.map(_.variableToLowerCase))
 
     override def toString: String = s"$verb${
       if (args.isEmpty) ""
@@ -61,23 +115,33 @@ object Types {
   case class Not(atom: Atom) extends Predicate {
     override def substituteWith(sub: Sub): Not = Not(atom.substituteWith(sub))
 
+    override def variableToLowerCase: Predicate = Not(atom.variableToLowerCase)
+
     override def toString: String = s"~$atom"
   }
 
   case class Conj(preds: List[Predicate]) extends Predicate {
     override def substituteWith(sub: Sub): Conj = Conj(preds.map(_.substituteWith(sub)))
 
+    override def variableToLowerCase: Predicate = Conj(preds.map(_.variableToLowerCase))
+
     override def toString: String = preds.mkString(" & ")
   }
 
-  case class Rule(rear: Atom, front: Predicate = True) {
-    override def toString: String = front match {
-      case True => s"$rear."
-      case _ => s"$rear :- $front."
+  class Rule(rearPart: Atom, frontPart: Predicate = True) {
+    val rear: Atom = rearPart.variableToLowerCase
+
+    val front: Predicate = frontPart.variableToLowerCase
+
+    override def toString: String = frontPart match {
+      case True => s"$rearPart."
+      case _ => s"$rearPart :- $frontPart."
     }
 
-    lazy val sig: Sig = Sig(rear.verb, rear.args.length)
+    lazy val sig: Sig = Sig(rearPart.verb, rearPart.args.length)
   }
+
+  abstract class BuiltInFunc
 
   case class Sig(name: Word, dim: Int) {
     override def toString: String = s"$name/$dim"
