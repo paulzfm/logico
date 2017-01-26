@@ -11,22 +11,19 @@ object Types {
     */
   type Sub = Map[Variable, Term]
 
-  def wrapper1[T](xs: List[Term], sub: Sub,
-                  cons: List[Term] => T): Option[T] = {
+  def wrapper1[T](xs: List[Term], sub: Sub, cons: List[Term] => T): Option[T] = {
     val newTerms = xs.flatMap(_.substituteWith(sub))
     if (newTerms.length != xs.length) None
     else Some(cons(newTerms))
   }
 
-  def wrapper2[T](xs: List[Term], sub: Sub,
-                  cons: List[Term] => Option[T]): Option[T] = {
+  def wrapper2[T](xs: List[Term], sub: Sub, cons: List[Term] => Option[T]): Option[T] = {
     val newTerms = xs.flatMap(_.substituteWith(sub))
     if (newTerms.length != xs.length) None
     else cons(newTerms)
   }
 
-  def wrapper3[T](xs: List[Predicate], sub: Sub,
-                  cons: List[Predicate] => T): Option[T] = {
+  def wrapper3[T](xs: List[Predicate], sub: Sub, cons: List[Predicate] => T): Option[T] = {
     val newPreds = xs.flatMap(_.substituteWith(sub))
     if (newPreds.length != xs.length) None
     else Some(cons(newPreds))
@@ -47,8 +44,6 @@ object Types {
 
   abstract class Term {
     def substituteWith(sub: Sub): Option[Term] = Some(this)
-
-    def substituteWith(key: Variable, value: Term): Option[Term] = substituteWith(Map(key -> value))
 
     def collectVariables(p: (Variable) => Boolean): Set[Variable] = Set()
   }

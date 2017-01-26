@@ -1,6 +1,6 @@
 import Types._
-import org.scalatest.FunSuite
 import org.junit.runner.RunWith
+import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
@@ -102,6 +102,6 @@ class TestSolveList extends FunSuite {
       Variable("X")
     )))
     println(trace)
-    assert(results == List(Map(Variable("X") -> 3)))
+    assert(results == List(Map(Variable("X") -> Integer(3))))
   }
 }

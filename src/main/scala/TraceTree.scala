@@ -1,9 +1,11 @@
 /**
   * Created by paul on 26/01/2017.
   */
+
 import Types._
 
 object TraceTree {
+
   /**
     * Trace tree: to record the search traces.
     */
@@ -108,4 +110,5 @@ object TraceTree {
     override def toLines(indent: Int): List[(Int, String)] =
       (indent, s"$goal") :: child.toLines(indent + 1)
   }
+
 }

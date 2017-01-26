@@ -2,8 +2,8 @@
   * Created by paul on 26/01/2017.
   */
 
-import Types._
 import TraceTree._
+import Types._
 
 object BuiltIns {
   /**
@@ -11,7 +11,7 @@ object BuiltIns {
     */
   type Func = List[Term] => (List[Sub], TTree)
 
-  val bi: Map[Sig, Func] = Map(
+  val bf: Map[Sig, Func] = Map(
     Sig(Word("sum"), 3) -> {
       case Integer(n1) :: Integer(n2) :: Integer(n3) :: Nil =>
         if (n1 + n2 == n3) (List(Map()), accepted)
@@ -23,9 +23,7 @@ object BuiltIns {
       case Integer(n1) :: Integer(n2) :: Variable(v) :: Nil =>
         (List(Map(Variable(v) -> Integer(n1 + n2))), accepted)
       case as =>
-//        throw new Exception(s"insufficient arguments: $as")
-      println(s"insufficient arguments: $as")
-        (Nil,rejected)
+        throw new Exception(s"insufficient arguments: $as")
     },
 
     Sig(Word("times"), 3) -> {

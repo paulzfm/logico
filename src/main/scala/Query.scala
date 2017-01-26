@@ -2,9 +2,10 @@
   * Created by paul on 22/01/2017.
   */
 
-import Types._
+import BuiltIns.bf
+import RandomTokens.resetTmpToken
 import TraceTree._
-import BuiltIns.bi
+import Types._
 
 class Query(val db: Database = new Database) {
 
@@ -131,11 +132,10 @@ class Query(val db: Database = new Database) {
     */
   def solveAtomWithRules(goal: Atom, rules: List[(Int, Rule)], solutions: List[Sub],
                          children: List[(Int, Sub, TTree)]): (List[Sub], TTree) = rules match {
-    case Nil => println(solutions)
-      (solutions.map(_.filterKeys(hasOriginalGoalStyle)), RNode(goal, children))
+    case Nil => (solutions, RNode(goal, children))
     case (id, r) :: rs =>
       val (newGoal, introducedSub) = reduce(goal, r)
-      val (results, trace) = solve(newGoal)
+      val (results, trace) = solveEntry(newGoal)
       solveAtomWithRules(goal, rs, solutions ++ results.map(introducedSub ++ _),
         children :+ (id, introducedSub, trace))
   }
@@ -153,9 +153,9 @@ class Query(val db: Database = new Database) {
     */
   def solveGoals(goals: List[Predicate], dep: Sub): (List[Sub], TTree) = goals match {
     case Nil => throw new Exception("goals cannot be empty")
-    case g :: Nil => solve(g) // one goal left
+    case g :: Nil => solveEntry(g) // one goal left
     case g :: gs =>
-      val (results, trace) = solve(g)
+      val (results, trace) = solveEntry(g)
       if (results.isEmpty) (Nil, trace) // when any goal fails, the conjunctive goal fails
       else {
         val (allResults, allTraces) = (for {
@@ -179,13 +179,13 @@ class Query(val db: Database = new Database) {
     *         NOTE that `results` should contain an empty substitution for successful is-query
     *         since no variables need to be replaced.
     */
-  def solve(goal: Predicate): (List[Sub], TTree) = goal match {
+  def solveEntry(goal: Predicate): (List[Sub], TTree) = goal match {
     case True => (List(Map()), accepted) // simplest goal
     case False => (Nil, rejected) // failure
     case Atom(v, as) =>
       val sig = Sig(v, as.length)
       // first try built-in functions
-      bi.get(sig) match {
+      bf.get(sig) match {
         case Some(f) =>
           val (results, tree) = f(as)
           (results,
@@ -200,7 +200,7 @@ class Query(val db: Database = new Database) {
           }
       }
     case Not(a) =>
-      val (results, trace) = solve(a) // solve the negation
+      val (results, trace) = solveEntry(a) // solve the negation
       results match {
         case Nil => (List(Map()), NNode(Not(a), trace, True)) // no substitutions found if succeed
         case _ => (Nil, NNode(Not(a), trace, False))
@@ -208,6 +208,13 @@ class Query(val db: Database = new Database) {
     case Conj(ps) =>
       val (subs, trace) = solveGoals(ps, Map())
       (subs, SNode(Conj(ps), trace))
+  }
+
+
+  def solve(goal: Predicate): (List[Sub], TTree) = {
+    resetTmpToken()
+    val (results, tree) = solveEntry(goal)
+    (results.map(_.filterKeys(hasOriginalGoalStyle)), tree)
   }
 
 }
