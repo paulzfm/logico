@@ -56,9 +56,9 @@ class TestReduce extends FunSuite with BeforeAndAfter {
     val goal = Atom(Word("costs"), List(Variable("Y"), Variable("X")))
     val rule = new Rule(Atom(Word("costs"), List(Word("fish"), Variable("Y"))),
       Atom(Word("sells"), List(Variable("Z"), Word("fish"), Variable("Y"))))
-    assert(q.reduce(goal, rule) == (
-      Atom(Word("sells"), List(Variable("T_1"), Word("fish"), Variable("X"))),
-      Map(Variable("Y") -> Word("fish"))))
+    val (g, s) = q.reduce(goal, rule)
+    assert(g == Atom(Word("sells"), List(Variable("T_1"), Word("fish"), Variable("X"))))
+    assert(s(Variable("Y")) == Word("fish"))
   }
 
   test("role variables unmatched with goal variables") {

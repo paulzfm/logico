@@ -147,13 +147,13 @@ object Types {
       }
     }
 
-    def variableToGoalStyle: Predicate = {
+    def variableToGoalStyle: (Predicate, Sub) = {
       val vs = collectVariables(hasRuleStyle).toList
       val sub: Sub = vs.map {
         case Variable(v) => (Variable(v), Variable(getTmpToken))
       }.toMap
       substituteWith(sub) match {
-        case Some(p) => p
+        case Some(p) => (p, sub)
       }
     }
   }

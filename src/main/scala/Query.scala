@@ -74,10 +74,10 @@ class Query(val db: Database = new Database) {
     * @param sub2 new substitutions generated.
     * @return the same as `matchTerms`.
     */
-  def simplify(sub1: Sub, sub2: Sub): Option[Sub] =
+  def simplify(sub1: Sub, sub2: Sub, includeSub2: Boolean = true): Option[Sub] =
     wrapper1(sub1.values.toList, sub2, ts => {
       val s1 = sub1.keys.zip(ts).toMap
-      s1 ++ sub2
+      if (includeSub2) s1 ++ sub2 else s1
     })
 
   /*subs match {
@@ -116,7 +116,12 @@ class Query(val db: Database = new Database) {
           case _ => false
         }
         rule.front.substituteWith(s2) match {
-          case Some(g) => (g.variableToGoalStyle, s1)
+          case Some(g) =>
+            val (newGoal, s3) = g.variableToGoalStyle
+            simplify(s1, s3) match {
+              case Some(newSub) => (newGoal, newSub)
+              case None => (False, Map())
+            }
           case None => (False, Map())
         }
     }
@@ -136,7 +141,7 @@ class Query(val db: Database = new Database) {
     case (id, r) :: rs =>
       val (newGoal, introducedSub) = reduce(goal, r)
       val (results, trace) = solveEntry(newGoal)
-      solveAtomWithRules(goal, rs, solutions ++ results.map(introducedSub ++ _),
+      solveAtomWithRules(goal, rs, solutions ++ results.flatMap(simplify(introducedSub, _)),
         children :+ (id, introducedSub, trace))
   }
 
@@ -160,9 +165,9 @@ class Query(val db: Database = new Database) {
       else {
         val (allResults, allTraces) = (for {
           result <- results
-          newDep = dep ++ result
+          newDep <- simplify(dep, result)
           (newResult, newTrace) <- wrapper3(gs, result, solveGoals(_, newDep))
-        } yield (newResult.map(_ ++ newDep), newTrace)).unzip
+        } yield (newResult.flatMap(simplify(newDep, _)), newTrace)).unzip
         (allResults.flatten, trace.appendGoals(allTraces)._1)
       }
   }
@@ -210,10 +215,10 @@ class Query(val db: Database = new Database) {
       (subs, SNode(Conj(ps), trace))
   }
 
-
   def solve(goal: Predicate): (List[Sub], TTree) = {
     resetTmpToken()
     val (results, tree) = solveEntry(goal)
+    println(results)
     (results.map(_.filterKeys(hasOriginalGoalStyle)), tree)
   }
 
