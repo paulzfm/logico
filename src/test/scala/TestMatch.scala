@@ -141,6 +141,38 @@ class TestMatch extends FunSuite {
     ).contains(Map(Variable("X") -> CList(), Variable("XS") -> CList())))
   }
 
+  test("X:XS /= []") {
+    assert(q.matchTerms(
+      PList(List(Variable("X")), Variable("XS")),
+      CList()
+    ).isEmpty)
+  }
+
+  test("[1] /= x:y:xs") {
+    assert(q.matchTerms(
+      CList(List(Integer(1))),
+      PList(List(Variable("x"), Variable("y")), Variable("xs"))
+    ).isEmpty)
+  }
+
+  test("[X:Y:XS] /= [1]") {
+    assert(q.matchTerms(
+      PList(List(Variable("x"), Variable("y")), Variable("xs")),
+      CList(List(Integer(1)))
+    ).isEmpty)
+  }
+
+  test("[1,cat] = x:y:xs") {
+    assert(q.matchTerms(
+      CList(List(Integer(1), Word("cat"))),
+      PList(List(Variable("x"), Variable("y")), Variable("xs"))
+    ).contains(Map(
+      Variable("x") -> Integer(1),
+      Variable("y") -> Word("cat"),
+      Variable("xs") -> CList()
+    )))
+  }
+
   test("[X,X,Y] = [x,1,x]") {
     assert(q.matchTerms(
       CList(List(Variable("X"), Variable("X"), Variable("Y"))),
@@ -162,4 +194,71 @@ class TestMatch extends FunSuite {
       Variable("X") -> Variable("Y")
     )))
   }
+
+  test("1:X = 1:2:x") {
+    assert(q.matchTerms(
+      PList(List(Integer(1)), Variable("X")),
+      PList(List(Integer(1), Integer(2)), Variable("x"))
+    ).contains(Map(
+      Variable("X") -> PList(List(Integer(2)), Variable("x"))
+    )))
+  }
+
+  test("1:X:X /= [1,1,1]") {
+    assert(q.matchTerms(
+      PList(List(Integer(1), Variable("X")), Variable("X")),
+      CList(List(Integer(1), Integer(1), Integer(1)))
+    ).isEmpty)
+  }
+
+  test("1:2:X = 1:x") {
+    assert(q.matchTerms(
+      PList(List(Integer(1), Integer(2)), Variable("X")),
+      PList(List(Integer(1)), Variable("x"))
+    ).contains(Map(
+      Variable("x") -> PList(List(Integer(2)), Variable("X"))
+    )))
+  }
+
+  test("[1:X,X] = [1:2:x,[2,3]]") {
+    assert(q.matchTerms(
+      CList(List(PList(List(Integer(1)), Variable("X")), Variable("X"))),
+      CList(List(
+        PList(List(Integer(1), Integer(2)), Variable("x")),
+        CList(List(Integer(2), Integer(3)))
+      ))
+    ).contains(Map(
+      Variable("X") -> CList(List(Integer(2), Integer(3))),
+      Variable("x") -> CList(List(Integer(3)))
+    )))
+  }
+
+  test("[X:X] = [[1,2],x,_]") {
+    assert(q.matchTerms(
+      PList(List(Variable("X")), Variable("X")),
+      CList(List(
+        CList(List(Integer(1), Integer(2))),
+        Variable("x"),
+        Any
+      ))
+    ).contains(Map(
+      Variable("X") -> CList(List(Integer(1), Integer(2))),
+      Variable("x") -> Integer(1)
+    )))
+  }
+
+  test("[_,2,3] = [x,x,_]") {
+    assert(q.matchTerms(
+      CList(List(Any, Integer(2), Integer(3))),
+      CList(List(Variable("x"), Variable("x"), Any))
+    ).contains(Map(Variable("x") -> Integer(2))))
+  }
+
+  test("[_,2,3] /= [x,x,x]") {
+    assert(q.matchTerms(
+      CList(List(Any, Integer(2), Integer(3))),
+      CList(List(Variable("x"), Variable("x"), Variable("x")))
+    ).isEmpty)
+  }
+
 }

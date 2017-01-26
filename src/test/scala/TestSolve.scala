@@ -66,7 +66,6 @@ class TestSolve extends FunSuite {
       Map(Variable("X") -> Word("tracey")),
       Map(Variable("X") -> Word("ian"))
     ))
-
   }
 
   test("X beside bob") {
@@ -93,6 +92,18 @@ class TestSolve extends FunSuite {
     assert(results == List(
       Map(Variable("X") -> Word("jill"), Variable("Y") -> Word("bob")),
       Map(Variable("X") -> Word("mary"), Variable("Y") -> Word("sam"))
+    ))
+  }
+
+  test("X mutters AND X left-of _") {
+    val (results, trace) = q.solve(Conj(List(
+      Atom(Word("mutters"), List(Variable("X"))),
+      Atom(Word("left-of"), List(Variable("X"), Any))
+    )))
+    println(trace)
+    assert(results == List(
+      Map(Variable("X") -> Word("jill")),
+      Map(Variable("X") -> Word("mary"))
     ))
   }
 

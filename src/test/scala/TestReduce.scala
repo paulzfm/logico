@@ -7,19 +7,19 @@ import org.scalatest.junit.JUnitRunner
 class TestReduce extends FunSuite {
   val q = new Query
 
-  test("no reduction: same") {
+  test("-> .") {
     val goal = Atom(Word("late"), List(Word("Tom")))
     val rule = new Rule(Atom(Word("late"), List(Word("Tom"))))
     assert(q.reduce(goal, rule) == (True, Map()))
   }
 
-  test("no reduction: different") {
+  test("-> ?") {
     val goal = Atom(Word("late"), List(Word("Tom")))
     val rule = new Rule(Atom(Word("late"), List(Word("Bill"))))
     assert(q.reduce(goal, rule) == (False, Map()))
   }
 
-  test("reduce to if") {
+  test("-> new goal") {
     val goal = Atom(Word("late"), List(Word("Tom")))
     val cond = Atom(Word("faulty"), List(Word("car")))
     val rule = new Rule(Atom(Word("late"), List(Word("Tom"))), cond)
@@ -40,21 +40,30 @@ class TestReduce extends FunSuite {
     assert(q.reduce(goal, rule) == (True, Map(Variable("X") -> Word("jill"))))
   }
 
-  test("reduce which-query") {
+  test("role variables bind to goal variables") {
     val goal = Atom(Word("retires"), List(Variable("Z")))
     val rule = new Rule(Atom(Word("retires"), List(Variable("X"))),
       Atom(Word("age"), List(Variable("X"), Integer(65))))
     assert(q.reduce(goal, rule) == (Atom(Word("age"), List(Variable("Z"), Integer(65))), Map()))
   }
 
-  test("fail which-query") {
+  test("role variables bind to goal variables with replacement") {
+    val goal = Atom(Word("costs"), List(Variable("Y"), Variable("X")))
+    val rule = new Rule(Atom(Word("costs"), List(Word("fish"), Variable("Y"))),
+      Atom(Word("sells"), List(Variable("Z"), Word("fish"), Variable("Y"))))
+    assert(q.reduce(goal, rule) == (
+      Atom(Word("sells"), List(Variable("Z"), Word("fish"), Variable("X"))),
+      Map(Variable("Y") -> Word("fish"))))
+  }
+
+  test("role variables unmatched with goal variables") {
     val goal = Atom(Word("costs"), List(Word("butter"), Variable("X")))
     val rule = new Rule(Atom(Word("costs"), List(Word("fish"), Variable("Y"))),
       Atom(Word("sells"), List(Variable("Z"), Word("fish"), Variable("Y"))))
     assert(q.reduce(goal, rule) == (False, Map()))
   }
 
-  test("conjunctive rule") {
+  test("new goal is conjunctive") {
     val goal = Atom(Word("gives"), List(Variable("X"), Word("mary"), Variable("Z")))
     val rule = new Rule(
       Atom(Word("gives"), List(Word("santa"), Variable("Y1"), Variable("Y2"))),

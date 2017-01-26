@@ -12,7 +12,11 @@ object Types {
   abstract class Term {
     def substituteWith(sub: Sub): Term = this
 
+    def substituteWith(key: Variable, value: Term): Term = substituteWith(Map(key -> value))
+
     def variableToLowerCase: Term = this
+
+    def variableToUpperCase: Term = this
   }
 
   case class Word(const: String) extends Term {
@@ -26,6 +30,8 @@ object Types {
     }
 
     override def variableToLowerCase: Term = Variable(name.toLowerCase)
+
+    override def variableToUpperCase: Term = Variable(name.toUpperCase)
 
     override def toString: String = name
   }
@@ -55,6 +61,8 @@ object Types {
 
     override def variableToLowerCase: Term = CList(terms.map(_.variableToLowerCase))
 
+    override def variableToUpperCase: Term = CList(terms.map(_.variableToUpperCase))
+
     override def toString: String = s"[${terms.mkString(", ")}]"
   }
 
@@ -82,6 +90,9 @@ object Types {
     override def variableToLowerCase: Term = PList(head.map(_.variableToLowerCase),
       tail.variableToLowerCase)
 
+    override def variableToUpperCase: Term = PList(head.map(_.variableToUpperCase),
+      tail.variableToUpperCase)
+
     override def toString: String = s"${head.mkString(":")}:$tail"
   }
 
@@ -89,6 +100,8 @@ object Types {
     def substituteWith(sub: Sub): Predicate = this
 
     def variableToLowerCase: Predicate = this
+
+    def variableToUpperCase: Predicate = this
   }
 
   abstract class Bool extends Predicate
@@ -106,6 +119,8 @@ object Types {
 
     override def variableToLowerCase: Atom = Atom(verb, args.map(_.variableToLowerCase))
 
+    override def variableToUpperCase: Atom = Atom(verb, args.map(_.variableToUpperCase))
+
     override def toString: String = s"$verb${
       if (args.isEmpty) ""
       else s"(${args.mkString(", ")})"
@@ -117,6 +132,8 @@ object Types {
 
     override def variableToLowerCase: Predicate = Not(atom.variableToLowerCase)
 
+    override def variableToUpperCase: Predicate = Not(atom.variableToUpperCase)
+
     override def toString: String = s"~$atom"
   }
 
@@ -124,6 +141,8 @@ object Types {
     override def substituteWith(sub: Sub): Conj = Conj(preds.map(_.substituteWith(sub)))
 
     override def variableToLowerCase: Predicate = Conj(preds.map(_.variableToLowerCase))
+
+    override def variableToUpperCase: Predicate = Conj(preds.map(_.variableToUpperCase))
 
     override def toString: String = preds.mkString(" & ")
   }
@@ -140,8 +159,6 @@ object Types {
 
     lazy val sig: Sig = Sig(rearPart.verb, rearPart.args.length)
   }
-
-  abstract class BuiltInFunc
 
   case class Sig(name: Word, dim: Int) {
     override def toString: String = s"$name/$dim"

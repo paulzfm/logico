@@ -6,8 +6,10 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class TestSolveList extends FunSuite {
   val stdListDb = new Database(List(
-    new Rule(Atom(Word("member-of"), List(Variable("X"), PList(List(Variable("X")), Any)))),
-    new Rule(Atom(Word("member-of"), List(Variable("X"), PList(List(Any), Variable("Ys")))),
+    new Rule(Atom(Word("member-of"), List(Variable("X"),
+      PList(List(Variable("X")), Variable("_1"))))),
+    new Rule(Atom(Word("member-of"), List(Variable("X"),
+      PList(List(Variable("_2")), Variable("Ys")))),
       Atom(Word("member-of"), List(Variable("X"), Variable("Ys")))),
 
     new Rule(Atom(Word("length-is"), List(CList(), Integer(0)))),

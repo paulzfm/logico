@@ -60,14 +60,21 @@ class Query(val db: Database = new Database) {
       }
     }
 
+  /**
+    * Simplify `sub` with new generated substitutions `subs`.
+    * To simplify means to replace variables with already solved values.
+    *
+    * @param sub  old substitutions.
+    * @param subs new substitutions generated.
+    * @return the simplified substitutions.
+    */
   def simplify(sub: Sub, subs: List[(Term, Term)]): Sub = subs match {
     case Nil => sub
     case (Variable(v1), Variable(v2)) :: ss =>
       simplify(sub.updated(Variable(v1), Variable(v2)), ss)
     case (Variable(v), t) :: ss =>
       val newSub = sub.map {
-        case (v1, Variable(v2)) if v2 == v => (v1, t)
-        case other => other
+        case (v1, t1) => (v1, t1.substituteWith(Variable(v), t))
       }
       simplify(newSub.updated(Variable(v), t), ss)
     case (t1, t2) :: _ => throw new Exception(s"illegal substitution: $t1 = $t2")
@@ -96,7 +103,7 @@ class Query(val db: Database = new Database) {
           case Variable(v) if v.head.isLower => true
           case _ => false
         }
-        (rule.front.substituteWith(s2), s1)
+        (rule.front.substituteWith(s2).variableToUpperCase, s1)
     }
 
   /**
@@ -172,8 +179,8 @@ class Query(val db: Database = new Database) {
           db.get(Sig(v, as.length)) match {
             case Some(rs) => solveAtomWithRules(Atom(v, as), rs, Nil, Nil)
             case None => (Nil, RNode(Atom(v, as))) // no such signature
+          }
       }
-    }
     case Not(a) =>
       val (results, trace) = solve(a) // solve the negation
       results match {
