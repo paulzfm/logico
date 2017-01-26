@@ -22,8 +22,8 @@ class Query(val db: Database = new Database) {
     case (Any, _) => Some(Map())
     case (_, Any) => Some(Map())
     case (Variable(v1), Variable(v2)) if v1 == v2 => Some(Map())
-    case (_, Variable(_)) => Some(Map(origin -> goal))
-    case (Variable(_), _) => Some(Map(goal -> origin))
+    case (_, Variable(v)) => Some(Map(Variable(v) -> goal))
+    case (Variable(v), _) => Some(Map(Variable(v) -> origin))
     case (Word(c1), Word(c2)) if c1 == c2 => Some(Map())
     case (Integer(n1), Integer(n2)) if n1 == n2 => Some(Map())
     case (CList(ts1), CList(ts2)) if ts1.length == ts2.length =>
@@ -54,31 +54,42 @@ class Query(val db: Database = new Database) {
       case (t1 :: ts1, t2 :: ts2) => matchTerms(t1, t2) match {
         case None => None // when any element fails, the list term fails
         case Some(s) =>
-          val newSub = simplify(sub, s.toList)
-          matchTermLists(ts1.map(_.substituteWith(newSub)), ts2.map(_.substituteWith(newSub)),
-            newSub)
+          simplify(sub, s) match {
+            case Some(newSub) => wrapper2(ts1, newSub, newGoalTerms =>
+              wrapper2(ts2, newSub, newRuleTerms =>
+                matchTermLists(newGoalTerms, newRuleTerms, newSub)
+              )
+            )
+            case None => None
+          }
       }
     }
 
   /**
-    * Simplify `sub` with new generated substitutions `subs`.
-    * To simplify means to replace variables with already solved values.
+    * Merge `sub1` with new generated substitutions `sub2`.
+    * To merge means to union and simplify: replace variables with already solved values.
     *
-    * @param sub  old substitutions.
-    * @param subs new substitutions generated.
-    * @return the simplified substitutions.
+    * @param sub1 old substitutions.
+    * @param sub2 new substitutions generated.
+    * @return the same as `matchTerms`.
     */
-  def simplify(sub: Sub, subs: List[(Term, Term)]): Sub = subs match {
-    case Nil => sub
-    case (Variable(v1), Variable(v2)) :: ss =>
-      simplify(sub.updated(Variable(v1), Variable(v2)), ss)
-    case (Variable(v), t) :: ss =>
-      val newSub = sub.map {
-        case (v1, t1) => (v1, t1.substituteWith(Variable(v), t))
-      }
-      simplify(newSub.updated(Variable(v), t), ss)
-    case (t1, t2) :: _ => throw new Exception(s"illegal substitution: $t1 = $t2")
-  }
+  def simplify(sub1: Sub, sub2: Sub): Option[Sub] =
+    wrapper1(sub1.values.toList, sub2, ts => {
+      val s1 = sub1.keys.zip(ts).toMap
+      s1 ++ sub2
+    })
+
+  /*subs match {
+      case Nil => Some(sub)
+      case (Variable(v1), Variable(v2)) :: ss =>
+        simplify(sub.updated(Variable(v1), Variable(v2)), ss)
+      case (Variable(v), t) :: ss =>
+        val newSub = sub.map {
+          case (v1, t1) => (v1, t1.substituteWith(Variable(v), t))
+        }
+        simplify(newSub.updated(Variable(v), t), ss)
+      case (t1, t2) :: _ => throw new Exception(s"illegal substitution: $t1 = $t2")
+    }*/
 
   /**
     * Reduce a `goal` with a given `rule`.
@@ -92,18 +103,21 @@ class Query(val db: Database = new Database) {
     *         - `sub` is the substitutions introduced when applying.
     */
   def reduce(goal: Atom, rule: Rule): (Predicate, Sub) =
-    matchTermLists(goal.args, rule.rear.args, Map()) match {
+    matchTermLists(goal.args, rule.args, Map()) match {
       case None => (False, Map())
       case Some(s) =>
         val s1 = s.filterKeys {
-          case Variable(v) if v.head.isUpper => true
+          case Variable(v) if hasGoalStyle(Variable(v)) => true
           case _ => false
         }
         val s2 = s.filterKeys {
-          case Variable(v) if v.head.isLower => true
+          case Variable(v) if hasRuleStyle(Variable(v)) => true
           case _ => false
         }
-        (rule.front.substituteWith(s2).variableToUpperCase, s1)
+        rule.front.substituteWith(s2) match {
+          case Some(g) => (g.variableToGoalStyle, s1)
+          case None => (False, Map())
+        }
     }
 
   /**
@@ -117,7 +131,8 @@ class Query(val db: Database = new Database) {
     */
   def solveAtomWithRules(goal: Atom, rules: List[(Int, Rule)], solutions: List[Sub],
                          children: List[(Int, Sub, TTree)]): (List[Sub], TTree) = rules match {
-    case Nil => (solutions, RNode(goal, children))
+    case Nil => println(solutions)
+      (solutions.map(_.filterKeys(hasOriginalGoalStyle)), RNode(goal, children))
     case (id, r) :: rs =>
       val (newGoal, introducedSub) = reduce(goal, r)
       val (results, trace) = solve(newGoal)
@@ -146,7 +161,7 @@ class Query(val db: Database = new Database) {
         val (allResults, allTraces) = (for {
           result <- results
           newDep = dep ++ result
-          (newResult, newTrace) = solveGoals(gs.map(_.substituteWith(result)), newDep)
+          (newResult, newTrace) <- wrapper3(gs, result, solveGoals(_, newDep))
         } yield (newResult.map(_ ++ newDep), newTrace)).unzip
         (allResults.flatten, trace.appendGoals(allTraces)._1)
       }

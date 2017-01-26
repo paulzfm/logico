@@ -1,10 +1,11 @@
+import RandomTokens.resetTmpToken
 import Types._
-import org.scalatest.FunSuite
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import org.scalatest.{BeforeAndAfter, FunSuite}
 
 @RunWith(classOf[JUnitRunner])
-class TestSolve extends FunSuite {
+class TestSolve extends FunSuite with BeforeAndAfter {
   val db = new Database(List(
     new Rule(Atom(Word("test"))),
     new Rule(Atom(Word("left-of"), List(Word("jill"), Word("bob")))),
@@ -39,6 +40,10 @@ class TestSolve extends FunSuite {
   val q = new Query(db)
 
   println(db)
+
+  before {
+    resetTmpToken()
+  }
 
   test("test") {
     val (results, trace) = q.solve(Atom(Word("test")))

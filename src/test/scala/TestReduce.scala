@@ -1,11 +1,16 @@
+import RandomTokens.resetTmpToken
 import Types._
-import org.scalatest.FunSuite
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import org.scalatest.{BeforeAndAfter, FunSuite}
 
 @RunWith(classOf[JUnitRunner])
-class TestReduce extends FunSuite {
+class TestReduce extends FunSuite with BeforeAndAfter {
   val q = new Query
+
+  before {
+    resetTmpToken()
+  }
 
   test("-> .") {
     val goal = Atom(Word("late"), List(Word("Tom")))
@@ -52,7 +57,7 @@ class TestReduce extends FunSuite {
     val rule = new Rule(Atom(Word("costs"), List(Word("fish"), Variable("Y"))),
       Atom(Word("sells"), List(Variable("Z"), Word("fish"), Variable("Y"))))
     assert(q.reduce(goal, rule) == (
-      Atom(Word("sells"), List(Variable("Z"), Word("fish"), Variable("X"))),
+      Atom(Word("sells"), List(Variable("T_1"), Word("fish"), Variable("X"))),
       Map(Variable("Y") -> Word("fish"))))
   }
 
@@ -76,5 +81,17 @@ class TestReduce extends FunSuite {
       Atom(Word("asked-for"), List(Word("mary"), Variable("Z"))),
       Atom(Word("deserves"), List(Word("mary"), Variable("Z")))
     )), Map(Variable("X") -> Word("santa"))))
+  }
+
+  test("recursive reduction") {
+    val goal = Atom(Word("member-of"), List(Integer(3), CList(
+      List(Integer(1), Integer(2), Integer(3), Integer(4))
+    )))
+    val rule = new Rule(Atom(Word("member-of"), List(Variable("X"),
+      PList(List(Any), Variable("Ys")))),
+      Atom(Word("member-of"), List(Variable("X"), Variable("Ys"))))
+    assert(q.reduce(goal, rule) == (Atom(Word("member-of"), List(Integer(3), CList(
+      List(Integer(2), Integer(3), Integer(4))
+    ))), Map()))
   }
 }

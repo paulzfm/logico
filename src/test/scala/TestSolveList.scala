@@ -7,9 +7,9 @@ import org.scalatest.junit.JUnitRunner
 class TestSolveList extends FunSuite {
   val stdListDb = new Database(List(
     new Rule(Atom(Word("member-of"), List(Variable("X"),
-      PList(List(Variable("X")), Variable("_1"))))),
+      PList(List(Variable("X")), Any)))),
     new Rule(Atom(Word("member-of"), List(Variable("X"),
-      PList(List(Variable("_2")), Variable("Ys")))),
+      PList(List(Any), Variable("Ys")))),
       Atom(Word("member-of"), List(Variable("X"), Variable("Ys")))),
 
     new Rule(Atom(Word("length-is"), List(CList(), Integer(0)))),
@@ -22,6 +22,8 @@ class TestSolveList extends FunSuite {
   ))
 
   val q = new Query(stdListDb)
+
+  println(stdListDb)
 
   test("3 member-of [1,2,3,4]") {
     val (results, trace) = q.solve(Atom(Word("member-of"), List(Integer(3), CList(List(
@@ -67,5 +69,39 @@ class TestSolveList extends FunSuite {
     assert(results.isEmpty)
   }
 
+  test("[1,2,3] length-of 3") {
+    val (results, trace) = q.solve(Atom(Word("length-is"), List(
+      CList(List(Integer(1), Integer(2), Integer(3))),
+      Integer(3)
+    )))
+    println(trace)
+    assert(results == List(Map()))
+  }
 
+  test("[1,2,3] NOT length-of 4") {
+    val (results, trace) = q.solve(Atom(Word("length-is"), List(
+      CList(List(Integer(1), Integer(2), Integer(3))),
+      Integer(4)
+    )))
+    println(trace)
+    assert(results.isEmpty)
+  }
+
+  test("[1,2,3] NOT length-of 2") {
+    val (results, trace) = q.solve(Atom(Word("length-is"), List(
+      CList(List(Integer(1), Integer(2), Integer(3))),
+      Integer(2)
+    )))
+    println(trace)
+    assert(results.isEmpty)
+  }
+
+  test("[1,2,3] length-of X") {
+    val (results, trace) = q.solve(Atom(Word("length-is"), List(
+      CList(List(Integer(1), Integer(2), Integer(3))),
+      Variable("X")
+    )))
+    println(trace)
+    assert(results == List(Map(Variable("X") -> 3)))
+  }
 }

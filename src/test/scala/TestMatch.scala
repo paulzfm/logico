@@ -1,6 +1,6 @@
 import Types._
-import org.scalatest.FunSuite
 import org.junit.runner.RunWith
+import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
@@ -162,6 +162,20 @@ class TestMatch extends FunSuite {
     ).isEmpty)
   }
 
+  test("[X:_] = [1,2,3,4]") {
+    assert(q.matchTerms(
+      PList(List(Variable("X")), Any),
+      CList(List(Integer(1), Integer(2), Integer(3), Integer(4)))
+    ).contains(Map(Variable("X") -> Integer(1))))
+  }
+
+  test("[_:XS] = [1,2,3,4]") {
+    assert(q.matchTerms(
+      PList(List(Any), Variable("XS")),
+      CList(List(Integer(1), Integer(2), Integer(3), Integer(4)))
+    ).contains(Map(Variable("XS") -> CList(List(Integer(2), Integer(3), Integer(4))))))
+  }
+
   test("[1,cat] = x:y:xs") {
     assert(q.matchTerms(
       CList(List(Integer(1), Word("cat"))),
@@ -189,8 +203,8 @@ class TestMatch extends FunSuite {
       CList(List(Variable("X"), Variable("X"), Variable("Y"))),
       CList(List(Variable("x"), Variable("y"), Variable("x")))
     ).contains(Map(
-      Variable("x") -> Variable("X"),
-      Variable("y") -> Variable("X"),
+      Variable("x") -> Variable("Y"),
+      Variable("y") -> Variable("Y"),
       Variable("X") -> Variable("Y")
     )))
   }

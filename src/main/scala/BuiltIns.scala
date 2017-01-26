@@ -22,7 +22,10 @@ object BuiltIns {
         (List(Map(Variable(v) -> Integer(n3 - n1))), accepted)
       case Integer(n1) :: Integer(n2) :: Variable(v) :: Nil =>
         (List(Map(Variable(v) -> Integer(n1 + n2))), accepted)
-      case _ => throw new Exception("insufficient arguments")
+      case as =>
+//        throw new Exception(s"insufficient arguments: $as")
+      println(s"insufficient arguments: $as")
+        (Nil,rejected)
     },
 
     Sig(Word("times"), 3) -> {

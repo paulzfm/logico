@@ -2,21 +2,55 @@
   * Created by paul on 22/01/2017.
   */
 
+import RandomTokens.getTmpToken
+
 object Types {
 
   /**
     * Substitutions of form like `Variable(X) -> Int(1)`.
     */
-  type Sub = Map[Term, Term]
+  type Sub = Map[Variable, Term]
+
+  def wrapper1[T](xs: List[Term], sub: Sub,
+                  cons: List[Term] => T): Option[T] = {
+    val newTerms = xs.flatMap(_.substituteWith(sub))
+    if (newTerms.length != xs.length) None
+    else Some(cons(newTerms))
+  }
+
+  def wrapper2[T](xs: List[Term], sub: Sub,
+                  cons: List[Term] => Option[T]): Option[T] = {
+    val newTerms = xs.flatMap(_.substituteWith(sub))
+    if (newTerms.length != xs.length) None
+    else cons(newTerms)
+  }
+
+  def wrapper3[T](xs: List[Predicate], sub: Sub,
+                  cons: List[Predicate] => T): Option[T] = {
+    val newPreds = xs.flatMap(_.substituteWith(sub))
+    if (newPreds.length != xs.length) None
+    else Some(cons(newPreds))
+  }
+
+  val hasGoalStyle: Variable => Boolean = {
+    case Variable(name) => name.charAt(0).isUpper
+  }
+
+  val hasRuleStyle: Variable => Boolean = {
+    case Variable(name) => name.charAt(0).isLower
+  }
+
+  val hasOriginalGoalStyle: Variable => Boolean = {
+    case Variable(name) => name.charAt(0).isUpper &&
+      (if (name.length > 1) name.charAt(1) != '_' else true)
+  }
 
   abstract class Term {
-    def substituteWith(sub: Sub): Term = this
+    def substituteWith(sub: Sub): Option[Term] = Some(this)
 
-    def substituteWith(key: Variable, value: Term): Term = substituteWith(Map(key -> value))
+    def substituteWith(key: Variable, value: Term): Option[Term] = substituteWith(Map(key -> value))
 
-    def variableToLowerCase: Term = this
-
-    def variableToUpperCase: Term = this
+    def collectVariables(p: (Variable) => Boolean): Set[Variable] = Set()
   }
 
   case class Word(const: String) extends Term {
@@ -24,14 +58,13 @@ object Types {
   }
 
   case class Variable(name: String) extends Term {
-    override def substituteWith(sub: Sub): Term = sub.get(this) match {
-      case Some(t) => t
-      case None => this
+    override def substituteWith(sub: Sub): Option[Term] = sub.get(this) match {
+      case Some(t) => Some(t)
+      case None => Some(this)
     }
 
-    override def variableToLowerCase: Term = Variable(name.toLowerCase)
-
-    override def variableToUpperCase: Term = Variable(name.toUpperCase)
+    override def collectVariables(p: (Variable) => Boolean): Set[Variable] =
+      if (p(this)) Set(this) else Set()
 
     override def toString: String = name
   }
@@ -57,11 +90,11 @@ object Types {
       head :+ CList(tail)
     }
 
-    override def substituteWith(sub: Sub): Term = CList(terms.map(_.substituteWith(sub)))
+    override def substituteWith(sub: Sub): Option[Term] =
+      wrapper1(terms, sub, CList)
 
-    override def variableToLowerCase: Term = CList(terms.map(_.variableToLowerCase))
-
-    override def variableToUpperCase: Term = CList(terms.map(_.variableToUpperCase))
+    override def collectVariables(p: (Variable) => Boolean): Set[Variable] =
+      terms.flatMap(_.collectVariables(p)).toSet
 
     override def toString: String = s"[${terms.mkString(", ")}]"
   }
@@ -72,7 +105,7 @@ object Types {
     * For example, X : Y : Z, where [X, Y] is `head` and `Z` denotes `tail` list.
     *
     * @param head first part of the list.
-    * @param tail denotes the second (remaining) part.
+    * @param tail Variable | Any, denotes the second (remaining) part.
     */
   case class PList(head: List[Term], tail: Term) extends Term {
     def split(headLength: Int): List[Term] = {
@@ -80,28 +113,54 @@ object Types {
       head1 :+ PList(tail1, tail)
     }
 
-    override def substituteWith(sub: Sub): Term = sub.get(tail) match {
-      case None => PList(head.map(_.substituteWith(sub)), tail)
-      case Some(CList(ts)) => CList(head.map(_.substituteWith(sub)) ++ ts)
-      case Some(PList(ts, v)) => PList(head.map(_.substituteWith(sub)) ++ ts, v)
-      case Some(t) => CList(head.map(_.substituteWith(sub)) :+ t)
+    override def substituteWith(sub: Sub): Option[Term] = {
+      val newHead = head.flatMap(_.substituteWith(sub))
+      if (newHead.length != head.length) None
+      else tail match {
+        case Variable(v1) => sub.get(Variable(v1)) match {
+          case None => Some(PList(newHead, tail))
+          case Some(Variable(v)) => Some(PList(newHead, Variable(v)))
+          case Some(CList(ts)) => Some(CList(newHead ++ ts))
+          case Some(PList(ts, v)) => Some(PList(newHead ++ ts, v))
+          case _ => None
+        }
+        case Any => Some(PList(newHead, tail))
+      }
     }
 
-    override def variableToLowerCase: Term = PList(head.map(_.variableToLowerCase),
-      tail.variableToLowerCase)
-
-    override def variableToUpperCase: Term = PList(head.map(_.variableToUpperCase),
-      tail.variableToUpperCase)
+    override def collectVariables(p: (Variable) => Boolean): Set[Variable] =
+      head.flatMap(_.collectVariables(p)) ++ (tail match {
+        case Variable(v) => List(Variable(v))
+        case _ => Nil
+      }) toSet
 
     override def toString: String = s"${head.mkString(":")}:$tail"
   }
 
   abstract class Predicate {
-    def substituteWith(sub: Sub): Predicate = this
+    def substituteWith(sub: Sub): Option[Predicate] = Some(this)
 
-    def variableToLowerCase: Predicate = this
+    def collectVariables(p: (Variable) => Boolean): Set[Variable] = Set()
 
-    def variableToUpperCase: Predicate = this
+    def variableToRuleStyle: Predicate = {
+      val vs = collectVariables(hasGoalStyle).toList
+      val sub: Sub = vs.map {
+        case Variable(v) => (Variable(v), Variable(v.toLowerCase))
+      }.toMap
+      substituteWith(sub) match {
+        case Some(p) => p
+      }
+    }
+
+    def variableToGoalStyle: Predicate = {
+      val vs = collectVariables(hasRuleStyle).toList
+      val sub: Sub = vs.map {
+        case Variable(v) => (Variable(v), Variable(getTmpToken))
+      }.toMap
+      substituteWith(sub) match {
+        case Some(p) => p
+      }
+    }
   }
 
   abstract class Bool extends Predicate
@@ -115,11 +174,11 @@ object Types {
   }
 
   case class Atom(verb: Word, args: List[Term] = Nil) extends Predicate {
-    override def substituteWith(sub: Sub): Atom = Atom(verb, args.map(_.substituteWith(sub)))
+    override def substituteWith(sub: Sub): Option[Atom] =
+      wrapper1(args, sub, Atom(verb, _))
 
-    override def variableToLowerCase: Atom = Atom(verb, args.map(_.variableToLowerCase))
-
-    override def variableToUpperCase: Atom = Atom(verb, args.map(_.variableToUpperCase))
+    override def collectVariables(p: (Variable) => Boolean): Set[Variable] =
+      args.flatMap(_.collectVariables(p)).toSet
 
     override def toString: String = s"$verb${
       if (args.isEmpty) ""
@@ -128,29 +187,35 @@ object Types {
   }
 
   case class Not(atom: Atom) extends Predicate {
-    override def substituteWith(sub: Sub): Not = Not(atom.substituteWith(sub))
+    override def substituteWith(sub: Sub): Option[Predicate] =
+      atom.substituteWith(sub) match {
+        case Some(a) => Some(Not(a))
+        case None => None
+      }
 
-    override def variableToLowerCase: Predicate = Not(atom.variableToLowerCase)
-
-    override def variableToUpperCase: Predicate = Not(atom.variableToUpperCase)
+    override def collectVariables(p: (Variable) => Boolean): Set[Variable] =
+      atom.collectVariables(p)
 
     override def toString: String = s"~$atom"
   }
 
   case class Conj(preds: List[Predicate]) extends Predicate {
-    override def substituteWith(sub: Sub): Conj = Conj(preds.map(_.substituteWith(sub)))
+    override def substituteWith(sub: Sub): Option[Predicate] = {
+      val newPreds = preds.flatMap(_.substituteWith(sub))
+      if (newPreds.length != preds.length) None
+      else Some(Conj(newPreds))
+    }
 
-    override def variableToLowerCase: Predicate = Conj(preds.map(_.variableToLowerCase))
-
-    override def variableToUpperCase: Predicate = Conj(preds.map(_.variableToUpperCase))
+    override def collectVariables(p: (Variable) => Boolean): Set[Variable] =
+      preds.flatMap(_.collectVariables(p)).toSet
 
     override def toString: String = preds.mkString(" & ")
   }
 
   class Rule(rearPart: Atom, frontPart: Predicate = True) {
-    val rear: Atom = rearPart.variableToLowerCase
+    val rear: Predicate = rearPart.variableToRuleStyle
 
-    val front: Predicate = frontPart.variableToLowerCase
+    val front: Predicate = frontPart.variableToRuleStyle
 
     override def toString: String = frontPart match {
       case True => s"$rearPart."
@@ -158,6 +223,10 @@ object Types {
     }
 
     lazy val sig: Sig = Sig(rearPart.verb, rearPart.args.length)
+
+    lazy val args: List[Term] = rear match {
+      case Atom(_, as) => as
+    }
   }
 
   case class Sig(name: Word, dim: Int) {
