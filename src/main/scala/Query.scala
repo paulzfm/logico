@@ -172,8 +172,11 @@ class Query(val db: Database = new Database) {
       // first try built-in functions
       bi.get(sig) match {
         case Some(f) =>
-          val (result :: _, tree) = f(as)
-          (result :: Nil, RNode(Atom(v, as), List((0, result, tree))))
+          val (results, tree) = f(as)
+          (results,
+            if (results.isEmpty) RNode(Atom(v, as), List((0, Map(), tree)))
+            else RNode(Atom(v, as), List((0, results.head, tree)))
+          )
         case None =>
           // then search rules in database
           db.get(Sig(v, as.length)) match {

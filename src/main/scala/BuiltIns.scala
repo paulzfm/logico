@@ -38,7 +38,7 @@ object BuiltIns {
       case _ => throw new Exception("insufficient arguments")
     },
 
-    Sig(Word("less"), 2) -> {
+    Sig(Word("lt"), 2) -> {
       case Integer(n1) :: Integer(n2) :: Nil =>
         if (n1 < n2) (List(Map()), accepted)
         else (Nil, rejected)

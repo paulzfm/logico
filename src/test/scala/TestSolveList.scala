@@ -67,9 +67,5 @@ class TestSolveList extends FunSuite {
     assert(results.isEmpty)
   }
 
-  test("1 + 11 = 12") {
-    val (results, trace) = q.solve(Atom(Word("sum"), List(Integer(1), Integer(11), Variable("X"))))
-    println(trace)
-    assert(results == List(Map(Variable("X") -> Integer(12))))
-  }
+
 }
