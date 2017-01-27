@@ -5,6 +5,9 @@
 import TraceTree._
 import Types._
 
+import scala.io.StdIn.readLine
+import scala.util.{Failure, Success, Try}
+
 object BuiltIns {
   /**
     * Built-in functions type.
@@ -51,6 +54,24 @@ object BuiltIns {
         if (t1 == t2) (List(Map()), accepted)
         else (Nil, rejected)
       case _ => throw new Exception("insufficient arguments")
+    },
+
+    Sig(Word("print"), 1) -> {
+      case Word(str) :: Nil =>
+        print(str)
+        (List(Map()), accepted)
+    },
+
+    Sig(Word("read"), 1) -> {
+      case Variable(v) :: Nil => (List(Map(Variable(v) -> Word(readLine()))), accepted)
+    },
+
+    Sig(Word("int"), 2) -> {
+      case Word(str) :: Variable(v) :: Nil =>
+        Try(str.toInt) match {
+          case Success(i) => (List(Map(Variable(v) -> Integer(i))), accepted)
+          case Failure(_) => (Nil, rejected)
+        }
     }
   )
 }
