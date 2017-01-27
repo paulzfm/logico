@@ -1,5 +1,9 @@
 /**
   * Created by paul on 26/01/2017.
+  *
+  * TraceTree.
+  *
+  * Trace tree data structure definition.
   */
 
 import Types._

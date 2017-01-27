@@ -7,6 +7,11 @@ import RandomTokens.resetTmpToken
 import TraceTree._
 import Types._
 
+/**
+  * Query strategies.
+  *
+  * @param db database that we base all queries on.
+  */
 class Query(val db: Database = new Database) {
 
   /**
@@ -55,7 +60,7 @@ class Query(val db: Database = new Database) {
       case (t1 :: ts1, t2 :: ts2) => matchTerms(t1, t2) match {
         case None => None // when any element fails, the list term fails
         case Some(s) =>
-          simplify(sub, s) match {
+          merge(sub, s) match {
             case Some(newSub) => wrapper2(ts1, newSub, newGoalTerms =>
               wrapper2(ts2, newSub, newRuleTerms =>
                 matchTermLists(newGoalTerms, newRuleTerms, newSub)
@@ -74,23 +79,11 @@ class Query(val db: Database = new Database) {
     * @param sub2 new substitutions generated.
     * @return the same as `matchTerms`.
     */
-  def simplify(sub1: Sub, sub2: Sub, includeSub2: Boolean = true): Option[Sub] =
+  def merge(sub1: Sub, sub2: Sub, includeSub2: Boolean = true): Option[Sub] =
     wrapper1(sub1.values.toList, sub2, ts => {
       val s1 = sub1.keys.zip(ts).toMap
       if (includeSub2) s1 ++ sub2 else s1
     })
-
-  /*subs match {
-      case Nil => Some(sub)
-      case (Variable(v1), Variable(v2)) :: ss =>
-        simplify(sub.updated(Variable(v1), Variable(v2)), ss)
-      case (Variable(v), t) :: ss =>
-        val newSub = sub.map {
-          case (v1, t1) => (v1, t1.substituteWith(Variable(v), t))
-        }
-        simplify(newSub.updated(Variable(v), t), ss)
-      case (t1, t2) :: _ => throw new Exception(s"illegal substitution: $t1 = $t2")
-    }*/
 
   /**
     * Reduce a `goal` with a given `rule`.
@@ -118,7 +111,7 @@ class Query(val db: Database = new Database) {
         rule.front.substituteWith(s2) match {
           case Some(g) =>
             val (newGoal, s3) = g.variableToGoalStyle
-            simplify(s1, s3) match {
+            merge(s1, s3) match {
               case Some(newSub) => (newGoal, newSub)
               case None => (False, Map())
             }
@@ -141,7 +134,7 @@ class Query(val db: Database = new Database) {
     case (id, r) :: rs =>
       val (newGoal, introducedSub) = reduce(goal, r)
       val (results, trace) = solveEntry(newGoal)
-      solveAtomWithRules(goal, rs, solutions ++ results.flatMap(simplify(introducedSub, _)),
+      solveAtomWithRules(goal, rs, solutions ++ results.flatMap(merge(introducedSub, _)),
         children :+ (id, introducedSub, trace))
   }
 
@@ -165,9 +158,9 @@ class Query(val db: Database = new Database) {
       else {
         val (allResults, allTraces) = (for {
           result <- results
-          newDep <- simplify(dep, result)
+          newDep <- merge(dep, result)
           (newResult, newTrace) <- wrapper3(gs, result, solveGoals(_, newDep))
-        } yield (newResult.flatMap(simplify(newDep, _)), newTrace)).unzip
+        } yield (newResult.flatMap(merge(newDep, _)), newTrace)).unzip
         (allResults.flatten, trace.appendGoals(allTraces)._1)
       }
   }
@@ -215,6 +208,14 @@ class Query(val db: Database = new Database) {
       (subs, SNode(Conj(ps), trace))
   }
 
+  /**
+    * Public interface you should call to solve a query.
+    * Compared with `solveEntry`, we filter `solveEntry`'s results to make it contain only the
+    * original goal variables.
+    *
+    * @param goal same as `solveEntry`.
+    * @return same as `solveEntry`, except that we do some filtering job.
+    */
   def solve(goal: Predicate): (List[Sub], TTree) = {
     resetTmpToken()
     val (results, tree) = solveEntry(goal)
