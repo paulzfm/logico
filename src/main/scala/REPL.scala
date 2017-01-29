@@ -4,10 +4,10 @@
 
 import Parsers._
 import Types.{Sub, showSub}
-import scala.io.Source.fromFile
-import scala.util.{Try, Success, Failure}
 
+import scala.io.Source.fromFile
 import scala.io.StdIn.readLine
+import scala.util.{Failure, Success, Try}
 
 class REPL(db: Database = new Database) {
   private var _db: Database = db
@@ -25,7 +25,35 @@ class REPL(db: Database = new Database) {
 
   def printContinuePrompt(): Unit = print(" -> ")
 
-  def printHelp(): Unit = println("help")
+  def printHelp(): Unit = {
+    def fill(targetLength: Int): String => String =
+      str => s"$str${" " * (targetLength - str.length)}"
+
+    def printTable(left: List[String], right: List[String]): Unit = {
+      val lf = fill(left.map(_.length).max + 4)
+      val rf = fill(right.map(_.length).max + 4)
+      left.zip(right).foreach {
+        case (l, r) => println("    " + lf(l) + rf(r))
+      }
+    }
+
+    println("Commands")
+    println()
+    printTable(List(
+      ":h|:help",
+      ":q|:quit|:exit",
+      ":show-db",
+      ":load <path>",
+      ":set-trace on|off"
+    ), List(
+      "print help",
+      "exit",
+      "print database rules",
+      "load database file from <path>",
+      "whether to show search trace"
+    ))
+    println()
+  }
 
   def readInput(acc: String = ""): String = {
     val line = readLine().trim
@@ -49,11 +77,18 @@ class REPL(db: Database = new Database) {
     case "q" | "quit" | "exit" =>
       println("Bye!")
       System.exit(0)
-    case "showdb" => print(_db)
+    case "show-db" => print(_db)
     case "load" =>
-      if (args.length > 0) load(args.head)
-      else Console.err.println("Missing argument for load.")
-    case _ => Console.err.println(s"Unknown command: $op.")
+      if (args.nonEmpty) load(args.head)
+      else throw new MissingArgumentsError("load", 1)
+    case "set-trace" =>
+      if (args.nonEmpty) args.head match {
+        case "on" => showTrace = true
+        case "off" => showTrace = false
+        case other => throw new InvalidArgumentsError(other, "`on' or `off'")
+      }
+      else throw new MissingArgumentsError("set-trace", 1)
+    case _ => throw new NoSuchCommandError(op)
   }
 
   def load(dbPath: String): Unit = {
@@ -67,6 +102,9 @@ class REPL(db: Database = new Database) {
           case rp.Failure(msg, next) =>
             Console.err.println("Parsing ERROR: " + msg + ":")
             Console.err.println(next.pos.longString)
+          case rp.Error(msg, next) =>
+            Console.err.println("ERROR: " + msg + ":")
+            Console.err.println(next.pos.longString)
         }
       case Failure(ex) => Console.err.println(ex)
     }
@@ -79,15 +117,23 @@ class REPL(db: Database = new Database) {
       val in = readInput()
       parseQuery(in) match {
         case qp.Success(Expr(pred), _) =>
-          val (results, trace) = _solver.solve(pred)
-          printSolutions(results)
-          if (showTrace) println(trace)
+          Try(_solver.solve(pred)) match {
+            case Success((results, trace)) =>
+              printSolutions(results)
+              if (showTrace) println(trace)
+            case Failure(ex) => Console.err.println(ex.getMessage)
+          }
         case qp.Success(Command(op, args), _) =>
-          executeCommand(op, args)
+          Try(executeCommand(op, args)) match {
+            case Success(_) => println("true.")
+            case Failure(ex) => Console.err.println(ex.getMessage)
+          }
         case qp.Failure(msg, next) =>
           Console.err.println("Parsing ERROR: " + msg + ":")
           Console.err.println(next.pos.longString)
-        case qp.Error(msg, _) => Console.err.println("ERROR: " + msg)
+        case qp.Error(msg, next) =>
+          Console.err.println("ERROR: " + msg)
+          Console.err.println(next.pos.longString)
       }
     }
   }

@@ -194,7 +194,7 @@ class Solver(val db: Database = new Database) {
           // then search rules in database
           db.get(Sig(v, as.length)) match {
             case Some(rs) => solveAtomWithRules(Atom(v, as), rs, Nil, Nil)
-            case None => (Nil, RNode(Atom(v, as))) // no such signature
+            case None => throw new NoSuchSignatureError(sig)
           }
       }
     case Not(a) =>
