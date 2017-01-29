@@ -189,6 +189,10 @@ object Types {
     override def toString: String = s"[${terms.mkString(", ")}]"
   }
 
+  def intList(int: Int): CList = intList(List(int))
+
+  def intList(ints: List[Int]): CList = CList(ints.map(Integer))
+
   /**
     * Partial list (we do not know the length).
     * The whole list is composed of `head` and `tail`.
@@ -341,7 +345,7 @@ object Types {
     override def collectVariables(p: (Variable) => Boolean): Set[Variable] =
       preds.flatMap(_.collectVariables(p)).toSet
 
-    override def toString: String = preds.mkString(" & ")
+    override def toString: String = preds.mkString(", ")
   }
 
   /**

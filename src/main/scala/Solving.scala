@@ -8,11 +8,11 @@ import TraceTree._
 import Types._
 
 /**
-  * Query strategies.
+  * Solving strategies.
   *
   * @param db database that we base all queries on.
   */
-class Query(val db: Database = new Database) {
+class Solving(val db: Database = new Database) {
 
   /**
     * Tell whether two terms can be made equal (matched).
