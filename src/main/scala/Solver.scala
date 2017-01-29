@@ -12,7 +12,7 @@ import Types._
   *
   * @param db database that we base all queries on.
   */
-class Solving(val db: Database = new Database) {
+class Solver(val db: Database = new Database) {
 
   /**
     * Tell whether two terms can be made equal (matched).

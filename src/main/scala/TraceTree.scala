@@ -81,10 +81,6 @@ object TraceTree {
           }") :: ls
         }
       }
-
-    private def showSub(sub: Sub): String = sub map {
-      case (t1, t2) => s"$t1 = $t2"
-    } mkString ", "
   }
 
   /**

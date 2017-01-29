@@ -16,6 +16,10 @@ object Types {
     */
   type Sub = Map[Variable, Term]
 
+  def showSub(sub: Sub): String = sub map {
+    case (t1, t2) => s"$t1 = $t2"
+  } mkString ", "
+
   /**
     * Substitute each of terms `xs` with `sub`, if any one fails (yields `None`), the whole
     * substitution fails.

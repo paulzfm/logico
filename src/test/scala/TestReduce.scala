@@ -6,7 +6,7 @@ import org.scalatest.{BeforeAndAfter, FunSuite}
 
 @RunWith(classOf[JUnitRunner])
 class TestReduce extends FunSuite with BeforeAndAfter {
-  val q = new Solving
+  val q = new Solver
 
   before {
     resetTmpToken()

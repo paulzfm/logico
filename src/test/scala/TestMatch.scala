@@ -5,7 +5,7 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class TestMatch extends FunSuite {
-  val q = new Solving
+  val q = new Solver
 
   test("_ = 1") {
     assert(q.matchTerms(Any, Integer(1)).contains(Map()))

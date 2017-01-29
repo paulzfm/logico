@@ -8,7 +8,7 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class TestBuiltIns extends FunSuite {
-  val q = new Solving
+  val q = new Solver
 
   test("1 + 11 = 12") {
     val (results, _) = q.solve(Atom(Word("sum"),

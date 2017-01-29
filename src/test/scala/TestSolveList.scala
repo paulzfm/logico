@@ -36,7 +36,7 @@ class TestSolveList extends FunSuite {
       )))
   ))
 
-  val q = new Solving(stdListDb)
+  val q = new Solver(stdListDb)
 
   println(stdListDb)
 

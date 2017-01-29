@@ -36,7 +36,7 @@ class TestSolve extends FunSuite {
     new Rule(Atom(Word("is-a-thing"), List(Variable("X"))))
   ))
 
-  val q = new Solving(db)
+  val q = new Solver(db)
 
   println(db)
 
