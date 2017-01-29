@@ -3,7 +3,7 @@
   */
 
 import Parsers._
-import Types.{Database, Sub, showSub}
+import Types.{Sub, showSub}
 
 import scala.io.StdIn.readLine
 

@@ -396,37 +396,4 @@ object Types {
   case class Sig(name: Word, dim: Int) {
     override def toString: String = s"$name/$dim"
   }
-
-  /**
-    * A database containing rules and facts.
-    * Internally, each rule will be indexed by an integer, which will be cited by the trace tree.
-    *
-    * @param rules rules and facts defined by user.
-    */
-  class Database(val rules: List[Rule] = Nil) {
-    private val rulesWithId: List[(Int, Rule)] = (1 to rules.length).toList.zip(rules)
-
-    private val hashMap: Map[Sig, List[(Int, Rule)]] = rulesWithId.groupBy(_._2.sig)
-
-    /**
-      * Query all rules which belong to the function of signature `sig`.
-      *
-      * @param sig function signature.
-      * @return all related rules.
-      */
-    def get(sig: Sig): Option[List[(Int, Rule)]] = hashMap.get(sig)
-
-    /**
-      * Expand database will extra user defined rules.
-      *
-      * @param newRules extra user defined rules.
-      * @return expanded database.
-      */
-    def append(newRules: List[Rule]): Database = new Database(rules ++ newRules)
-
-    override def toString: String = rulesWithId map {
-      case (id, rule) => s"($id) $rule\n"
-    } mkString
-  }
-
 }

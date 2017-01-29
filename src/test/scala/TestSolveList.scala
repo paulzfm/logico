@@ -5,40 +5,7 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class TestSolveList extends FunSuite {
-  val stdListDb = new Database(List(
-    new Rule(Atom(Word("member-of"), List(Variable("X"),
-      PList(List(Variable("X")), Any)))),
-    new Rule(Atom(Word("member-of"), List(Variable("X"),
-      PList(List(Any), Variable("Ys")))),
-      Atom(Word("member-of"), List(Variable("X"), Variable("Ys")))),
-
-    new Rule(Atom(Word("length-is"), List(CList(), Integer(0)))),
-    new Rule(Atom(Word("length-is"), List(
-      PList(List(Variable("X")), Variable("XS")), Variable("Y")
-    )), Conj(List(
-      Atom(Word("length-is"), List(Variable("XS"), Variable("Y1"))),
-      Atom(Word("sum"), List(Variable("Y1"), Integer(1), Variable("Y")))
-    ))),
-
-    new Rule(Atom(Word("append-to"), List(CList(), Variable("Y"), Variable("Y")))),
-    new Rule(Atom(Word("append-to"), List(
-      PList(List(Variable("X1")), Variable("XS1")),
-      Variable("Y"),
-      PList(List(Variable("X1")), Variable("Z"))
-    )), Atom(Word("append-to"), List(Variable("XS1"), Variable("Y"), Variable("Z")))),
-
-    new Rule(Atom(Word("position-is"), List(Variable("X"), Variable("XS"), Variable("Y"))),
-      Conj(List(
-        Atom(Word("append-to"),
-          List(Variable("X1"), PList(List(Variable("X")), Any), Variable("XS"))),
-        Atom(Word("length-is"), List(Variable("X1"), Variable("Y1"))),
-        Atom(Word("sum"), List(Variable("Y1"), Integer(1), Variable("Y")))
-      )))
-  ))
-
-  val q = new Solver(stdListDb)
-
-  println(stdListDb)
+  val q = new Solver
 
   def stringList(str: String): CList = CList(str.map(_.toString).toList.map(Word))
 
