@@ -74,12 +74,8 @@ object Parsers {
       case rear ~ None ~ _ => new Rule(rear)
       case rear ~ Some(_ ~ front) ~ _ => new Rule(rear, front)
     }
-  }
 
-  class DatabaseParser extends RuleParser {
-    def database: Parser[Database] = phrase(rep(rule)) ^^ { rules =>
-      new Database(rules)
-    }
+    def rules: Parser[List[Rule]] = rep(rule)
   }
 
   /**
@@ -121,7 +117,7 @@ object Parsers {
     def query: Parser[Query] = phrase(command | expr)
   }
 
-  val dp = new DatabaseParser
+  val rp = new RuleParser
 
   /**
     * Parse a string interpreted as rules into a `Database`.
@@ -129,7 +125,7 @@ object Parsers {
     * @param rules input string.
     * @return database.
     */
-  def parseRules(rules: String): dp.ParseResult[Database] = dp.parse(dp.database, rules)
+  def parseRules(rules: String): rp.ParseResult[List[Rule]] = rp.parse(rp.rules, rules)
 
   val qp = new QueryParser
 

@@ -185,8 +185,8 @@ class TestParsers extends FunSuite {
     assert(parseQuery(":load list").get == Command("load", List("list")))
   }
 
-  test("parse :load /home/dbs/db1") {
-    assert(parseQuery(":load /home/dbs/db1").get == Command("load", List("/home/dbs/db1")))
+  test("parse :load /home/dbs/db1.pl") {
+    assert(parseQuery(":load /home/dbs/db1.pl").get == Command("load", List("/home/dbs/db1.pl")))
   }
 
   test("parse :q") {
@@ -246,7 +246,7 @@ class TestParsers extends FunSuite {
                      disturbed-by(X, Y) :- dozes(X), beside(X, Y), cheers(Y).
                      is-a-thing(X)."""
 
-    assert(parseRules(content).get.toString == expected.toString)
+    assert(new Database(parseRules(content).get).toString == expected.toString)
   }
 
 }

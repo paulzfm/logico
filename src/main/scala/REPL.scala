@@ -51,14 +51,23 @@ class REPL(db: Database = new Database) {
       System.exit(0)
     case "showdb" => print(_db)
     case "load" =>
-      if (args.length > 1) load(args.head)
-      else Console.err.println(s"Missing argument for load.")
+      if (args.length > 0) load(args.head)
+      else Console.err.println("Missing argument for load.")
     case _ => Console.err.println(s"Unknown command: $op.")
   }
 
   def load(dbPath: String): Unit = {
     Try(fromFile(dbPath)) match {
-      case Success(lines) => parseRules(lines.mkString)
+      case Success(lines) =>
+        parseRules(lines.mkString) match {
+          case rp.Success(rules, _) =>
+            _db = _db.append(rules)
+            _solver = new Solver(_db)
+            println("true.")
+          case rp.Failure(msg, next) =>
+            Console.err.println("Parsing ERROR: " + msg + ":")
+            Console.err.println(next.pos.longString)
+        }
       case Failure(ex) => Console.err.println(ex)
     }
   }
