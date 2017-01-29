@@ -33,11 +33,12 @@ object Parsers {
       case _ ~ terms ~ _ => CList(terms)
     }
 
-    def plist: Parser[PList] = "(" ~ rep1sep(term, ":") ~ ")" ^^ {
-      case _ ~ terms ~ _ => terms.last match {
-        case Variable(v) => PList(terms.init, Variable(v))
-        case Any => PList(terms.init, Any)
-      }
+    def plist: Parser[PList] = "(" ~ rep(term ~ ":") ~ (any | variable) ~ ")" ^^ {
+      case _ ~ ts ~ last ~ _ =>
+        val terms = ts map {
+          case t ~ _ => t
+        }
+        PList(terms, last)
     }
 
     def term: Parser[Term] = integer | word | variable | any | clist | plist
@@ -59,6 +60,7 @@ object Parsers {
     def predicate: Parser[Predicate] = atom | not
 
     def predicates: Parser[Predicate] = repsep(predicate, ",") ^^ {
+      case Nil => True
       case p :: Nil => p
       case ps => Conj(ps)
     }

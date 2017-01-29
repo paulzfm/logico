@@ -219,7 +219,6 @@ class Solver(val db: Database = new Database) {
   def solve(goal: Predicate): (List[Sub], TTree) = {
     resetTmpToken()
     val (results, tree) = solveEntry(goal)
-    System.err.println(results)
     (results.map(_.filterKeys(hasOriginalGoalStyle)), tree)
   }
 

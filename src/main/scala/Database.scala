@@ -64,7 +64,8 @@ class Database(val rules: List[Rule] = Nil) {
     */
   def append(newRules: List[Rule]): Database = new Database(rules ++ newRules)
 
-  override def toString: String = rulesWithId map {
-    case (id, rule) => s"($id) $rule\n"
+  override def toString: String = rulesWithId flatMap {
+    case (id, rule) if id > 0 => Some(s"($id) $rule\n")
+    case _ => None
   } mkString
 }
