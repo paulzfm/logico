@@ -1,5 +1,9 @@
 /**
   * Created by paul on 28/01/2017.
+  *
+  * Parsers.
+  *
+  * To parse queries and rules into AST types defined in `Types.scala`.
   */
 
 import Types._
@@ -8,6 +12,9 @@ import scala.util.parsing.combinator._
 
 object Parsers {
 
+  /**
+    * Parse terms.
+    */
   class TermParser extends RegexParsers {
     def integer: Parser[Integer] =
       """-?(0|[1-9][0-9]*)""".r ^^ { str =>
@@ -36,6 +43,9 @@ object Parsers {
     def term: Parser[Term] = integer | word | variable | any | clist | plist
   }
 
+  /**
+    * Parse predicates.
+    */
   class PredicateParser extends TermParser {
     def atom: Parser[Atom] = word ~ opt("(" ~ rep1sep(term, ",") ~ ")") ^^ {
       case verb ~ None => Atom(verb)
@@ -54,6 +64,9 @@ object Parsers {
     }
   }
 
+  /**
+    * Parse rules.
+    */
   class RuleParser extends PredicateParser {
     def rule: Parser[Rule] = atom ~ opt(":-" ~ predicates) ~ "." ^^ {
       case rear ~ None ~ _ => new Rule(rear)
@@ -67,12 +80,29 @@ object Parsers {
     }
   }
 
+  /**
+    * Query user inputs from interactive console.
+    */
   abstract class Query
 
+  /**
+    * Expression shown as is-query or which-query. Must stop with a `.`.
+    *
+    * @param pred the predicate.
+    */
   case class Expr(pred: Predicate) extends Query
 
+  /**
+    * Commands supported by REPL.
+    *
+    * @param op   command name (operator name).
+    * @param args arguments (if any).
+    */
   case class Command(op: String, args: List[String] = Nil) extends Query
 
+  /**
+    * Parse query.
+    */
   class QueryParser extends PredicateParser {
     def expr: Parser[Expr] = predicates ~ "." ^^ {
       case pred ~ _ => Expr(pred)
@@ -91,10 +121,22 @@ object Parsers {
 
   val dp = new DatabaseParser
 
+  /**
+    * Parse a string interpreted as rules into a `Database`.
+    *
+    * @param rules input string.
+    * @return database.
+    */
   def parseRules(rules: String): dp.ParseResult[Database] = dp.parse(dp.database, rules)
 
   val qp = new QueryParser
 
+  /**
+    * Parse a string interpreted as a query into a `Query`.
+    *
+    * @param query query string.
+    * @return query.
+    */
   def parseQuery(query: String): qp.ParseResult[Query] = qp.parse(qp.query, query)
 
 }

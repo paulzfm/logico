@@ -246,7 +246,7 @@ class TestParsers extends FunSuite {
                      disturbed-by(X, Y) :- dozes(X), beside(X, Y), cheers(Y).
                      is-a-thing(X)."""
 
-    assert(parseRules(content).get.rules == expected.rules)
+    assert(parseRules(content).get.toString == expected.toString)
   }
 
 }
